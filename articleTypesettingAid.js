@@ -58,7 +58,7 @@
             this.readonly = 'readonly';
         }
         addData(objectStoreName,addData,successCallable,errorCallable){
-            console.log('addData,objectStoreName='+objectStoreName+',addData='+addData);
+            console.log('addData,objectStoreName='+objectStoreName+',addData='+JSON.stringify(addData));
             const transaction = this.DB.transaction([objectStoreName], this.readwrite);
             const objectStore = transaction.objectStore(objectStoreName);
             const request = objectStore.add(addData);
@@ -66,7 +66,7 @@
             request.onerror = errorCallable;
         }
         putData(objectStoreName,putData,successCallable,errorCallable){
-            console.log('putData,objectStoreName='+objectStoreName+',putData='+putData);
+            console.log('putData,objectStoreName='+objectStoreName+',putData='+JSON.stringify(putData));
             const transaction = this.DB.transaction([objectStoreName], this.readwrite);
             const objectStore = transaction.objectStore(objectStoreName);
             const request = objectStore.put(putData);
@@ -364,9 +364,98 @@
     }
     // 候选区view
     class CandidateView{
-        constructor(){
+        constructor(windowNode,hookNode){
+            this.hookNode = hookNode;
+            this.boxId = 'container_box';
             this.candidateBox = this.__containerGenerate();
-
+            this.groupNode = this.__groupNodeGenerate();
+            this.candidateBox.appendChild(this.groupNode);
+            // 添加鼠标监听
+            this.inBoxRange = false;
+            this.candidateBox.addEventListener('mouseenter',e=>{
+                this.inBoxRange = true;
+            });
+            this.candidateBox.addEventListener('mouseleave',e=>{
+                this.inBoxRange = false;
+            });
+            // 添加候选区到页面
+            if (!this.isExist(windowNode.document.body)){
+                windowNode.document.body.appendChild(this.candidateBox);
+            }
+            // 添加输入监听器
+            hookNode.addEventListener('input',e=>{
+                this.clearCandidateTexts();
+            });
+            // 添加获取焦点监听器
+            hookNode.addEventListener('focus',e=>{
+                let eventNode = e.target;
+                let nodeOffsetX = this.__getOffsetX(eventNode);
+                let nodeOffsetY = this.__getOffsetY(eventNode);
+                let x = nodeOffsetX;
+                let y = nodeOffsetY + eventNode.offsetHeight;
+                if (this.__getOffsetX(this.candidateBox) == x && this.__getOffsetY(this.candidateBox) == y){
+                    if (this.isVisibility()){
+                        return;
+                    }else{
+                        this.setVisibility(true);
+                    }
+                }
+                this.setPosition(x,y);
+                this.setSize(eventNode.offsetWidth,'auto');
+                this.clearCandidateTexts();
+                this.setVisibility(true);
+            });
+            // 添加失去焦点监听器
+            hookNode.addEventListener('blur',e=>{
+                if (!this.inBoxRange){
+                    this.setVisibility(false);
+                }
+            });
+            // 添加鼠标右键监听器
+            hookNode.addEventListener('mouseup', e=>{
+                if(e.button == 2){
+                    this.setVisibility(false);
+                }
+            });
+        }
+        __getOffsetX(node){
+            let nodeOffsetX = node.offsetLeft;
+            if (node.offsetParent){
+                nodeOffsetX += this.__getOffsetX(node.offsetParent);
+            }
+            return nodeOffsetX;
+        }
+        __getOffsetY(node){
+            let nodeOffsetY = node.offsetTop;
+            if (node.offsetParent){
+                nodeOffsetY += this.__getOffsetY(node.offsetParent);
+            }
+            return nodeOffsetY;
+        }
+        isExist(node){
+            let result = false;
+            if (node.querySelector('#'+this.boxId)){
+                result = true;
+            }
+            return result;
+        }
+        setCandidateText(text){
+            if (this.groupNode.firstChild){
+                this.groupNode.insertBefore(this.__itemNodeGeneraate(text),this.groupNode.firstChild);
+            }else{
+                this.groupNode.appendChild(this.__itemNodeGeneraate(text));
+            }
+        }
+        setCandidateTexts(textList){
+            // 清除旧候选词
+            this.clearCandidateTexts();
+            // 添加新的候选词
+            for (let i = textList.length-1;i > 0;i--){
+                this.setCandidateText(textList[i]);
+            }
+        }
+        clearCandidateTexts(){
+            this.groupNode.innerHTML = '';
         }
         setPosition(x,y){
             if (x && y){
@@ -376,8 +465,12 @@
         }
         setSize(width,height){
             if (width && height){
-                this.candidateBox.style['width'] = width+'px';
-                this.candidateBox.style['height'] = height+'px';
+                let setWidth;
+                let setHeight;
+                if (width == 'auto') setWidth = width; else setWidth = width+'px';
+                if (height == 'auto') setHeight = height; else setHeight = height+'px';
+                this.candidateBox.style['width'] = setWidth;
+                this.candidateBox.style['height'] = setHeight;
             }
         }
         isVisibility(){
@@ -394,120 +487,76 @@
             return this.candidateBox;
         }
         __containerGenerate(){
-            let candidateArea = document.createElement('ul');
-            candidateArea.style['left'] = '70px';
-            candidateArea.style['padding'] = '0px 8px';
-            candidateArea.style['visibility'] = 'hidden';
             // 容器样式
             let style_div = 'position:absolute;\
-                width:40%;\
-                height:100px;\
-                visibility:visible;\
+                min-width:100px;\
+                min-height:50px;\
+                visibility:hidden;\
                 line-height:32px;\
                 font-size:18px;\
                 background-color:#fff;\
                 box-shadow:0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);\
-                z-index:300;\
-                padding:16px;';
+                z-index:300;';
             let containerBox = document.createElement('div');
             containerBox.setAttribute('style',style_div);
+            containerBox.setAttribute('id',this.boxId);
             return containerBox;
         }
-
-        
+        __groupNodeGenerate(){
+            let groupStyle = 'margin:0;padding:0;width:100%;'
+            let groupNode = document.createElement('ul');
+            groupNode.setAttribute('style',groupStyle);
+            return groupNode;
+        }
+        __itemNodeGeneraate(text){
+            let itemStyle = 'padding:0px 8px;font-size:16px;list-style-type:none;';
+            let itemNode = document.createElement('li');
+            itemNode.textContent = text;
+            itemNode.setAttribute('style',itemStyle);
+            itemNode.addEventListener('mouseenter',e=>{
+                itemNode.style['background-color'] = '#eee';
+            });
+            itemNode.addEventListener('mouseleave',e=>{
+                itemNode.style['background-color'] = 'transparent';
+            });
+            itemNode.addEventListener('click',e=>{
+                this.hookNode.value = itemNode.textContent;
+                this.setVisibility(false);
+            });
+            return itemNode;
+        }
     }
     // 栏目辅助
     class ColumnAuxiliary{
-        constructor(windowNode,DB){
-            this.windowNode = windowNode;
+        constructor(DB){
             this.DB = DB;
-            this.candidateView = new CandidateView();
-            document.body.appendChild(this.candidateView.getCandidateView());
-            console.log('windowParent='+windowNode.parent);
-            console.log('windowPageXOffset='+windowNode.pageXOffset);
-            console.log('windowPageYOffset='+windowNode.pageYOffset);
-            console.log('windowScreenLeft='+windowNode.screenLeft);
-            console.log('windowScreenTop='+windowNode.screenTop);
-            console.log('windowScreenX='+windowNode.screenX);
-            console.log('windowScreenY='+windowNode.screenY);
-            console.log('windowinnerWidth='+windowNode.innerWidth);
-            console.log('windowinnerHeight='+windowNode.innerHeight);
-            let windowNode2 = windowNode.parent;
-            console.log('2windowParent='+windowNode2.parent);
-            console.log('2windowPageXOffset='+windowNode2.pageXOffset);
-            console.log('2windowPageYOffset='+windowNode2.pageYOffset);
-            console.log('2windowScreenLeft='+windowNode2.screenLeft);
-            console.log('2windowScreenTop='+windowNode2.screenTop);
-            console.log('2windowScreenX='+windowNode2.screenX);
-            console.log('2windowScreenY='+windowNode2.screenY);
-            console.log('windowinnerWidth='+windowNode2.innerWidth);
-            console.log('windowinnerHeight='+windowNode2.innerHeight);
-            let windowNode3 = windowNode2.parent;
-            console.log('3windowParent='+windowNode3.parent);
-            console.log('3windowPageXOffset='+windowNode3.pageXOffset);
-            console.log('3windowPageYOffset='+windowNode3.pageYOffset);
-            console.log('3windowScreenLeft='+windowNode3.screenLeft);
-            console.log('3windowScreenTop='+windowNode3.screenTop);
-            console.log('3windowScreenX='+windowNode3.screenX);
-            console.log('3windowScreenY='+windowNode3.screenY);
-            console.log('windowinnerWidth='+windowNode3.innerWidth);
-            console.log('windowinnerHeight='+windowNode3.innerHeight);
-            let windowNode4 = windowNode.top;
-            console.log('4windowParent='+windowNode4.parent);
-            console.log('4windowPageXOffset='+windowNode4.pageXOffset);
-            console.log('4windowPageYOffset='+windowNode4.pageYOffset);
-            console.log('4windowScreenLeft='+windowNode4.screenLeft);
-            console.log('4windowScreenTop='+windowNode4.screenTop);
-            console.log('4windowScreenX='+windowNode4.screenX);
-            console.log('4windowScreenY='+windowNode4.screenY);
-            console.log('4indowinnerWidth='+windowNode4.innerWidth);
-            console.log('4windowinnerHeight='+windowNode4.innerHeight);
-
-
         }
-        apply(inputNode){
-
+        apply(windowNode,inputNode){
+            let candidateView = new CandidateView(windowNode,inputNode);
             // 添加输入监听器
             inputNode.addEventListener('input',e=>{
                 console.log(e.target.value);
+                // this.__queryAllRelevantColumn(e.target.value,e=>{
+                //     console.log('query result='+JSON.stringify(e.target.result));
+                //     this.candidateView.setCandidateText(e.target.result.column_name);
+                // })
+                this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
+                    console.log('query result='+JSON.stringify(columnWeightList));
+                    for (let i = 0;i < columnWeightList.length;i++){
+                        candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                    }
+                });
             });
             // 添加获取焦点监听器
             inputNode.addEventListener('focus',e=>{
                 console.log('get focus');
-                console.log('target='+e.target);
-                console.log('currentTarget='+e.currentTarget);
-                console.log('offsetWidth='+e.target.offsetWidth);
-                console.log('offsetHeight='+e.target.offsetHeight);
-                console.log('offsetLeft='+e.target.offsetLeft);
-                console.log('offsetLeftO='+this.getLeft(e.target));
-                console.log('offsetTop='+e.target.offsetTop);
-                console.log('offsetParent='+e.target.offsetParent);
-                let a = e.target.getBoundingClientRect();
-                console.log('top='+a.top);
-                console.log('right='+a.right);
-                console.log('bottom='+a.bottom);
-                console.log('left='+a.left);
-                this.candidateView.setPosition(e.target.offsetLeft,e.target.offsetTop + e.target.offsetHeight);
-                this.candidateView.setSize(e.target.offsetWidth,e.target.offsetHeight);
-                this.candidateView.setVisibility(true);
-
-
-                // candidateArea.style['visibility'] = 'visible';
+                this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
+                    console.log('query result='+JSON.stringify(columnWeightList));
+                    for (let i = 0;i < columnWeightList.length;i++){
+                        candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                    }
+                });
             });
-            // 添加失去焦点监听器
-            inputNode.addEventListener('blur',e=>{
-                console.log('lose focus');
-                this.candidateView.setVisibility(false);
-                // candidateArea.style['visibility'] = 'hidden';
-            })
-        }
-        getLeft(node){
-            let offsetLeft = node.offsetLeft;
-            console.log('parent='+node.offsetParent);
-            if (node.offsetParent){
-                offsetLeft += this.getLeft(node.offsetParent);
-            }
-            return offsetLeft;
         }
         __queryAllRelevantColumn(text,callable){
             let columnKeywordsDAO = new ColumnKeywordsDAO(this.DB);
@@ -550,6 +599,47 @@
                 }
             });
         }
+        __queryAllRelevantColumnHyphenation(text,successCallable,errorCallable){
+            // 查询所有栏目
+            new Promise((resolve,reject)=>{
+                let columnDAO = new ColumnDAO(this.DB);
+                columnDAO.getColumnAll(IDBKeyRange.lowerBound(0),e=>{
+                    resolve(e.target.result);
+                });
+            }).then(columnList=>{
+                // 数据包装，增加权重属性
+                return new Promise((resolve,reject)=>{
+                    let columnWeightList = [];
+                    for (let i = 0;i < columnList.length;i++){
+                        columnWeightList.push({
+                            'column':columnList[i],
+                            'weight':0
+                        });
+                    }
+                    resolve(columnWeightList);
+                });
+            }).then(columnWeightList=>{
+                // 进行权重赋值
+                return new Promise((resolve,reject)=>{
+                    for(let i = 0;i < text.length;i++){
+                        let charText = text.charAt(i);
+                        for (let j = 0;j < columnWeightList.length;j++){
+                            if (columnWeightList[j].column.column_name.search(charText) != -1){
+                                columnWeightList[j].weight += 1;
+                            }
+                        }
+                    }
+                    resolve(columnWeightList);
+                });
+            }).then(columnWeightList=>{
+                // 进行按权重排序
+                columnWeightList.sort((a,b)=>{
+                    return a.weight - b.weight;
+                })
+                if (successCallable) successCallable(columnWeightList);
+            })
+        }
+
     }
     // 正文辅助
     class MainBodyAuxiliary{
@@ -632,11 +722,17 @@
                 this.dataAddContextMenu.style['top'] = y+'px';
             }
         }
+        getColumnKeywordsNode(){
+            return this.dataAddContextMenu.querySelector('[name=columnKeywords]');
+        }
         getColumnKeywordsValue(){
             let result = '';
             let node = this.dataAddContextMenu.querySelector('[name=columnKeywords]');
             if (node) result = node.value;
             return result;
+        }
+        getColumnNode(){
+            return this.dataAddContextMenu.querySelector('[name=column]');
         }
         getColumnValue(){
             let result = '';
@@ -644,21 +740,69 @@
             if (node) result = node.value;
             return result;
         }
+        getMainBodyKeywordsNode(){
+            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
+        }
         getMainBodyKeywordsValue(){
             let result = '';
             let node = this.dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
             if (node) result = node.value;
             return result;
         }
+        getAddColumnKeywordsColumnButton(){
+            return this.dataAddContextMenu.querySelector('[name=columnKeywordsColumnSave]');
+        }
         setOnClickToAddColumnKeywordsColumn(callable){
             if (!callable) return;
-            let addButtonNode = this.dataAddContextMenu.querySelector('[name=columnKeywordsColumnSave]');
+            let addButtonNode = this.getAddColumnKeywordsColumnButton();
             if (addButtonNode) addButtonNode.addEventListener('click',callable);
+        }
+        addColumnKeywordsColumnButtonStart(){
+            let node = this.getAddColumnKeywordsColumnButton();
+            node.value = '保存中...'
+            node.setAttribute('disabled',true);
+        }
+        addColumnKeywordsColumnButtonEnd(){
+            let node = this.getAddColumnKeywordsColumnButton();
+            node.value = '保存成功'
+        }
+        addColumnKeywordsColumnButtonError(){
+            let node = this.getAddColumnKeywordsColumnButton();
+            node.value = '保存失败'
+        }
+        addColumnKeywordsColumnButtonReset(){
+            let node = this.getAddColumnKeywordsColumnButton();
+            node.value = '保存'
+            node.removeAttribute('disabled');
+        }
+        getAddMainBodyKeywordsButton(){
+            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
         }
         setOnClickToAddMainBodyKeywords(callable){
             if (!callable) return;
-            let addButtonNode = this.dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
+            let addButtonNode = this.getAddMainBodyKeywordsButton();
             if (addButtonNode) addButtonNode.addEventListener('click',callable);
+        }
+        addMainBodyKeywordsButtonStart(){
+            let node = this.getAddMainBodyKeywordsButton();
+            node.value = '保存中...'
+            node.setAttribute('disabled',true);
+        }
+        addMainBodyKeywordsButtonEnd(){
+            let node = this.getAddMainBodyKeywordsButton();
+            node.value = '保存成功'
+        }
+        addMainBodyKeywordsButtonEnd(){
+            let node = this.getAddMainBodyKeywordsButton();
+            node.value = '保存失败'
+        }
+        addMainBodyKeywordsButtonReset(){
+            let node = this.getAddMainBodyKeywordsButton();
+            node.value = '保存'
+            node.removeAttribute('disabled');
+        }
+        getAddMainBodyKeywordsButton(){
+            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
         }
         setOnMouseEnterListener(callable){
             if (!callable) return;
@@ -672,7 +816,7 @@
         // 上下文菜单容器
         __contextMenuGenerate(){
             let contextMenuBox = document.createElement('div');
-            contextMenuBox.setAttribute('style','position:fixed;\
+            contextMenuBox.setAttribute('style','position:absolute;\
                 visibility:hidden;\
                 background-color:#fff;\
                 box-shadow:0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);\
@@ -696,10 +840,21 @@
                 padding: 0 4px;';
             let style_input_button = 'margin: 8px 0px 8px auto;\
                 display: block;\
-                padding: 0 8px;\
+                background: #1d95ee;\
+                color: #fff;\
+                border-radius: 4px;\
+                pointer-events: auto;\
+                text-transform: none;\
+                box-shadow: 0 2px 2px 0 rgb(0 0 0 / 14%), 0 1px 5px 0 rgb(0 0 0 / 12%), 0 3px 1px -2px rgb(0 0 0 / 20%);\
+                border:0;\
+                align-items: center;\
+                cursor: pointer;\
+                user-select: none;\
                 width: 180px;\
-                height: 28px;\
-                border: 1px solid;';
+                height: 28px;';
+
+                // padding: 0 8px;\
+                // border: 1px solid;';
             let style_hr = 'border-style: dotted;\
                 background-color: transparent;\
                 height: 0px;\
@@ -772,40 +927,47 @@
     class DatabaseAuxiliary{
         constructor(DB){
             this.DB = DB;
-            // 鼠标范围标记
-            this.contextMenuRange = false;
             // 生成上下文菜单
             this.contextMenuView = new DataAddContextMenu();
             this.contextMenuView.setOnClickToAddColumnKeywordsColumn(e=>{
-                this.addColumnKeywords(this.contextMenuView.getColumnKeywordsValue(),
-                    this.contextMenuView.getColumnValue());
+                this.contextMenuView.addColumnKeywordsColumnButtonStart();
+                this.addColumnKeywords(this.contextMenuView.getColumnKeywordsValue(),this.contextMenuView.getColumnValue(),e=>{
+                    //添加成功回调
+                    console.log('columnKeywords-column添加成功')
+                    this.contextMenuView.addColumnKeywordsColumnButtonEnd();
+                },()=>{
+                    // 保存失败回调
+                    console.log('columnKeywords-column添加失败')
+                    this.contextMenuView.addColumnKeywordsColumnButtonError();
+                });
+
             });
             this.contextMenuView.setOnClickToAddMainBodyKeywords(e=>{
                 this.addMainBodyFilterKeywords(this.contextMenuView.getMainBodyKeywordsValue());
             })
-            this.contextMenuView.setOnMouseEnterListener(e=>{
-                console.log('in context menu.');
-                this.contextMenuRange = true;
-            })
-            this.contextMenuView.setOnMouseLeaveListener(e=>{
-                console.log('out context menu.');
-                this.contextMenuRange = false;
-            })
         }
         apply(windownsObj){
-            // 设置上下文菜单
+            // 添加上下文菜单到body
             windownsObj.document.body.appendChild(this.contextMenuView.getDataAddContextMenu());
             // 设置上下文菜单事件
             windownsObj.document.oncontextmenu = e=>{
                 console.log('windows oncontext menu event invoke.')
                 // 调用系统上下文菜单
-                if (windownsObj.getSelection().toString().length == 0) return true;
+                let selection = windownsObj.getSelection()
+                if (selection.toString().length == 0) return true;
                 // 调用自定义上下文菜单
-                let x = e.clientX;
-                let y = e.clientY;
-                let text = windownsObj.getSelection().toString();
+                let x = e.pageX;
+                let y = e.pageY;
+                console.log('window pageXOffset='+windownsObj.pageXOffset)
+                console.log('window pageYOffset='+windownsObj.pageYOffset)
+                console.log('mouse pageX='+e.pageX)
+                console.log('mouse pageY='+e.pageY)
+                let text = selection.toString();
                 console.log('text='+text+',x='+x+',y='+y);
                 
+                this.contextMenuView.addColumnKeywordsColumnButtonReset();
+                this.contextMenuView.addMainBodyKeywordsButtonReset();
+
                 this.contextMenuView.setPosition(x,y);
                 this.contextMenuView.setValueToInputText(text);
                 this.contextMenuView.setVisibility(true);
@@ -814,15 +976,24 @@
             }
             // 设置鼠标取消上下文事件
             windownsObj.document.onmouseup = e=>{
-                if(e.button != 2){
-                    if (this.contextMenuRange) return;
+                // 上下文菜单位置范围
+                let node = this.contextMenuView.getDataAddContextMenu();
+                let x1 = node.offsetLeft;
+                let y1 = node.offsetTop;
+                let x2 = x1 + node.offsetWidth;
+                let y2 = y1 + node.offsetHeight;
+                // 当前鼠标位置
+                let mouseX = e.clientX;
+                let mouseY = e.clientY;
+                // 鼠标位置不在上下文菜单范围内则隐藏菜单
+                if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
                     console.log('hidden context menu.');
                     this.contextMenuView.setVisibility(false);
                 }
             }
         }
 
-        addColumnKeywords(keywords,column){
+        addColumnKeywords(keywords,column,successCallable,errorCallable){
             console.log('addColumnKeywords,keywords='+keywords+',column='+column);
             let CKDAO = new ColumnKeywordsDAO(this.DB);
             let columnDAO = new ColumnDAO(this.DB);
@@ -885,9 +1056,9 @@
                         }
                     }
                     if (!isExist){
-                        CKCDAO.addColumnKeywordsColumn(data.columnKeywords.id,data.column.id,e=>{
-                            console.log('column keywords save success.');
-                        })
+                        CKCDAO.addColumnKeywordsColumn(data.columnKeywords.id,data.column.id,successCallable)
+                    }else{
+                        if (errorCallable) errorCallable();
                     }
                 })
             })
@@ -916,18 +1087,36 @@
     function start(DB,hookNode){
         // 实例化页面hook接口
         let articleChange = new ArticleChangeAPI(hookNode);
-
-        // 启用标题辅助
-
-        // 启用栏目辅助
+        // 主窗口
         articleChange.windownHook(windownNode=>{
-            let columnAuxiliary = new ColumnAuxiliary(windownNode,DB);
+            // 启用标题辅助
+
+            // 启用栏目推荐辅助
+            let columnAuxiliary = new ColumnAuxiliary(DB);
             articleChange.changeColumn((node)=>{
-                columnAuxiliary.apply(node);
-            })
+                columnAuxiliary.apply(windownNode,node);
+            });
+
+            // 启用数据库辅助
+            let databaseAuxiliary = new DatabaseAuxiliary(DB);
+            databaseAuxiliary.apply(windownNode);
+            let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
+            columnAuxiliary.apply(windownNode,columnNode);
+
+            // 隐藏页面自带的上下文菜单
+            let contextMenuNode = windownNode.document.querySelector('#edui_fixedlayer');
+            if (contextMenuNode) contextMenuNode.style['top'] = 'auto';
         })
-
-
+        // 正文窗口
+        articleChange.mainBodyIframeWindowHook(mainBodyWindow=>{
+            // 启用数据库辅助
+            let databaseAuxiliary = new DatabaseAuxiliary(DB);
+            databaseAuxiliary.apply(mainBodyWindow);
+            let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
+            // 启用栏目推荐辅助
+            let columnAuxiliary = new ColumnAuxiliary(DB);
+            columnAuxiliary.apply(mainBodyWindow,columnNode);
+        });
         // 启用正文辅助
         let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(DB);
         mainBodyFilterKeywordsDAO.getMainBodyFilterKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
@@ -936,14 +1125,6 @@
             articleChange.changeMainBody(node=>{
                 mainBodyAuxiliary.apply(node,keywordsList);
             });
-        });
-        // 启用数据库辅助
-        let databaseAuxiliary = new DatabaseAuxiliary(DB);
-        articleChange.windownHook(node=>{
-            databaseAuxiliary.apply(node);
-        });
-        articleChange.mainBodyIframeWindowHook(node=>{
-            databaseAuxiliary.apply(node);
         });
     }
 
