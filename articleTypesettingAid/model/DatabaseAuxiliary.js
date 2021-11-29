@@ -21,52 +21,10 @@ class DatabaseAuxiliary{
         })
     }
     apply(windownsObj){
-        // 添加上下文菜单到body
-        windownsObj.document.body.appendChild(this.contextMenuView.getDataAddContextMenu());
-        // 设置上下文菜单事件
-        windownsObj.document.oncontextmenu = e=>{
-            console.log('windows oncontext menu event invoke.')
-            // 调用系统上下文菜单
-            let selection = windownsObj.getSelection()
-            if (selection.toString().length == 0) return true;
-            // 调用自定义上下文菜单
-            let x = e.pageX;
-            let y = e.pageY;
-            console.log('window pageXOffset='+windownsObj.pageXOffset)
-            console.log('window pageYOffset='+windownsObj.pageYOffset)
-            console.log('mouse pageX='+e.pageX)
-            console.log('mouse pageY='+e.pageY)
-            let text = selection.toString();
-            console.log('text='+text+',x='+x+',y='+y);
-            
-            this.contextMenuView.addColumnKeywordsColumnButtonReset();
-            this.contextMenuView.addMainBodyKeywordsButtonReset();
-
-            this.contextMenuView.setPosition(x,y);
-            this.contextMenuView.setValueToInputText(text);
-            this.contextMenuView.setVisibility(true);
-
-            return false;
-        }
-        // 设置鼠标取消上下文事件
-        windownsObj.document.onmouseup = e=>{
-            // 上下文菜单位置范围
-            let node = this.contextMenuView.getDataAddContextMenu();
-            let x1 = node.offsetLeft;
-            let y1 = node.offsetTop;
-            let x2 = x1 + node.offsetWidth;
-            let y2 = y1 + node.offsetHeight;
-            // 当前鼠标位置
-            let mouseX = e.clientX;
-            let mouseY = e.clientY;
-            // 鼠标位置不在上下文菜单范围内则隐藏菜单
-            if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
-                console.log('hidden context menu.');
-                this.contextMenuView.setVisibility(false);
-            }
-        }
+        this.contextMenuView.hookWindow(windownsObj);
     }
 
+    // 添加栏目关键字-栏目-栏目关系
     addColumnKeywords(keywords,column,successCallable,errorCallable){
         console.log('addColumnKeywords,keywords='+keywords+',column='+column);
         let CKDAO = new ColumnKeywordsDAO(this.DB);
@@ -138,6 +96,7 @@ class DatabaseAuxiliary{
         })
     }
 
+    // 添加正文关键字
     addMainBodyFilterKeywords(keywords){
         let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(this.DB);
         mainBodyFilterKeywordsDAO.addMainBodyFilterKeywords(keywords,0,e=>{

@@ -25,30 +25,30 @@ function start(DB,hookNode){
         // 启用数据库辅助
         let databaseAuxiliary = new DatabaseAuxiliary(DB);
         databaseAuxiliary.apply(windownNode);
+        // 数据库栏目启用栏目辅助
         let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
-        columnAuxiliary.apply(windownNode,columnNode);
+        columnAuxiliary.apply(window,columnNode);
 
         // 隐藏页面自带的上下文菜单
         let contextMenuNode = windownNode.document.querySelector('#edui_fixedlayer');
         if (contextMenuNode) contextMenuNode.style['top'] = 'auto';
-    })
-    // 正文窗口
-    articleChange.mainBodyIframeWindowHook(mainBodyWindow=>{
-        // 启用数据库辅助
-        let databaseAuxiliary = new DatabaseAuxiliary(DB);
-        databaseAuxiliary.apply(mainBodyWindow);
-        let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
-        // 启用栏目推荐辅助
-        let columnAuxiliary = new ColumnAuxiliary(DB);
-        columnAuxiliary.apply(mainBodyWindow,columnNode);
-    });
-    // 启用正文辅助
-    let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(DB);
-    mainBodyFilterKeywordsDAO.getMainBodyFilterKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
-        let keywordsList = event.target.result;
-        let mainBodyAuxiliary = new MainBodyAuxiliary();
-        articleChange.changeMainBody(node=>{
-            mainBodyAuxiliary.apply(node,keywordsList);
+        // -----------------------------------------------------------------------------
+        // 正文窗口
+        articleChange.mainBodyIframeWindowHook(mainBodyWindow=>{
+            // 启用数据库辅助
+            databaseAuxiliary.apply(mainBodyWindow);
+            let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
+            // 启用栏目推荐辅助
+            columnAuxiliary.apply(mainBodyWindow,columnNode);
+        });
+        // 启用正文辅助
+        let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(DB);
+        mainBodyFilterKeywordsDAO.getMainBodyFilterKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
+            let keywordsList = event.target.result;
+            let mainBodyAuxiliary = new MainBodyAuxiliary();
+            articleChange.changeMainBody(node=>{
+                mainBodyAuxiliary.apply(node,keywordsList);
+            })
         });
     });
 }

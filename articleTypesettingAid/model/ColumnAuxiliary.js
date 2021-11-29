@@ -1,9 +1,10 @@
 class ColumnAuxiliary{
     constructor(DB){
         this.DB = DB;
+        this.candidateView = new CandidateView();
     }
     apply(windowNode,inputNode){
-        let candidateView = new CandidateView(windowNode,inputNode);
+        this.candidateView.hookNode(windowNode,inputNode);
         // 添加输入监听器
         inputNode.addEventListener('input',e=>{
             console.log(e.target.value);
@@ -14,7 +15,7 @@ class ColumnAuxiliary{
             this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
                 console.log('query result='+JSON.stringify(columnWeightList));
                 for (let i = 0;i < columnWeightList.length;i++){
-                    candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                    this.candidateView.setCandidateText(columnWeightList[i].column.column_name);
                 }
             });
         });
@@ -22,9 +23,9 @@ class ColumnAuxiliary{
         inputNode.addEventListener('focus',e=>{
             console.log('get focus');
             this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
-                console.log('query result='+JSON.stringify(columnWeightList));
+                console.log('query success.');
                 for (let i = 0;i < columnWeightList.length;i++){
-                    candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                    this.candidateView.setCandidateText(columnWeightList[i].column.column_name);
                 }
             });
         });

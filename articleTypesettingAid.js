@@ -364,74 +364,87 @@
     }
     // 候选区view
     class CandidateView{
-        constructor(windowNode,hookNode){
-            this.hookNode = hookNode;
+        constructor(){
             this.boxId = 'container_box';
-            this.candidateBox = this.__containerGenerate();
-            this.groupNode = this.__groupNodeGenerate();
-            this.candidateBox.appendChild(this.groupNode);
-            // 添加鼠标监听
-            this.inBoxRange = false;
-            this.candidateBox.addEventListener('mouseenter',e=>{
-                this.inBoxRange = true;
-            });
-            this.candidateBox.addEventListener('mouseleave',e=>{
-                this.inBoxRange = false;
-            });
+            this.groupId = 'cotainer_group';
+            let candidateBox = this.__containerGenerate();
+            let groupNode = this.__groupNodeGenerate();
+            candidateBox.appendChild(groupNode);
             // 添加候选区到页面
-            if (!this.isExist(windowNode.document.body)){
-                windowNode.document.body.appendChild(this.candidateBox);
+            if (!this.isExist(document.body)){
+                document.body.appendChild(candidateBox);
             }
+        }
+    
+        hookNode(windowNode,node){
+            let candidateBox = this.getCandidateView();
+            // 获取window之间的偏移
+            let windowOffsetX = windowNode.top.innerWidth - windowNode.innerWidth;
+            let windowOffsetY = windowNode.top.innerHeight - windowNode.innerHeight;
+            console.log('wX='+windowOffsetX+'wY='+windowOffsetY);
             // 添加输入监听器
-            hookNode.addEventListener('input',e=>{
+            node.addEventListener('input',e=>{
+                console.log('candidate view hook node input event.')
                 this.clearCandidateTexts();
             });
             // 添加获取焦点监听器
-            hookNode.addEventListener('focus',e=>{
+            node.addEventListener('focus',e=>{
+                console.log('candidate view hook node focus event.')
                 let eventNode = e.target;
+                // 获取input节点偏移
                 let nodeOffsetX = this.__getOffsetX(eventNode);
                 let nodeOffsetY = this.__getOffsetY(eventNode);
-                let x = nodeOffsetX;
-                let y = nodeOffsetY + eventNode.offsetHeight;
-                if (this.__getOffsetX(this.candidateBox) == x && this.__getOffsetY(this.candidateBox) == y){
-                    if (this.isVisibility()){
-                        return;
-                    }else{
-                        this.setVisibility(true);
-                    }
+                // 计算候选区节点所需偏移
+                let x = windowOffsetX + nodeOffsetX;
+                let y = windowOffsetY + nodeOffsetY + eventNode.offsetHeight;
+                // 获取当前候选区的偏移
+                let nowX = this.__getOffsetX(candidateBox) + windowOffsetX;
+                let nowY = this.__getOffsetY(candidateBox) + windowOffsetY;
+                // 设置候选区偏移
+                if (nowX != x || nowY != y){
+                    this.setPosition(x,y);
                 }
-                this.setPosition(x,y);
-                this.setSize(eventNode.offsetWidth,'auto');
+                // 设置候选区宽度
+                if (candidateBox.offsetWidth != eventNode.offsetWidth){
+                    this.setSize(eventNode.offsetWidth,eventNode.offsetWidth);
+                }
+                // 清除候选区文本
                 this.clearCandidateTexts();
+                // 候选区显示
                 this.setVisibility(true);
             });
             // 添加失去焦点监听器
-            hookNode.addEventListener('blur',e=>{
-                if (!this.inBoxRange){
+            node.addEventListener('blur',e=>{
+                console.log('candidate view hook node blur event.')
+                let inputNode = e.target;
+                // 输入节点位置范围
+                let inputNodeX1 = inputNode.offsetLeft;
+                let inputNodeY1 = inputNode.offsetTop;
+                let inputNodeX2 = inputNode.offsetWidth + inputNodeX1;
+                let inputNodeY2 = inputNode.offsetHeight + inputNodeY1;
+                // 候选区位置范围
+                let x1 = candidateBox.offsetLeft;
+                let y1 = candidateBox.offsetTop;
+                let x2 = x1 + candidateBox.offsetWidth;
+                let y2 = y1 + candidateBox.offsetHeight;
+                // 当前鼠标位置
+                let mouseX = e.clientX;
+                let mouseY = e.clientY;
+                // 鼠标位置不在候选区范围内则隐藏菜单
+                if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
+                    console.log('hidden candidateBox.');
                     this.setVisibility(false);
                 }
             });
             // 添加鼠标右键监听器
-            hookNode.addEventListener('mouseup', e=>{
+            node.addEventListener('mouseup', e=>{
+                console.log('candidate view hook node mouseup event.')
                 if(e.button == 2){
                     this.setVisibility(false);
                 }
             });
         }
-        __getOffsetX(node){
-            let nodeOffsetX = node.offsetLeft;
-            if (node.offsetParent){
-                nodeOffsetX += this.__getOffsetX(node.offsetParent);
-            }
-            return nodeOffsetX;
-        }
-        __getOffsetY(node){
-            let nodeOffsetY = node.offsetTop;
-            if (node.offsetParent){
-                nodeOffsetY += this.__getOffsetY(node.offsetParent);
-            }
-            return nodeOffsetY;
-        }
+    
         isExist(node){
             let result = false;
             if (node.querySelector('#'+this.boxId)){
@@ -440,10 +453,11 @@
             return result;
         }
         setCandidateText(text){
-            if (this.groupNode.firstChild){
-                this.groupNode.insertBefore(this.__itemNodeGeneraate(text),this.groupNode.firstChild);
+            let groupNode = this.getCandidateGroup();
+            if (groupNode.firstChild){
+                groupNode.insertBefore(this.__itemNodeGeneraate(text),groupNode.firstChild);
             }else{
-                this.groupNode.appendChild(this.__itemNodeGeneraate(text));
+                groupNode.appendChild(this.__itemNodeGeneraate(text));
             }
         }
         setCandidateTexts(textList){
@@ -455,40 +469,47 @@
             }
         }
         clearCandidateTexts(){
-            this.groupNode.innerHTML = '';
+            this.getCandidateGroup().innerHTML = '';
         }
         setPosition(x,y){
+            let candidateBox = this.getCandidateView();
             if (x && y){
-                this.candidateBox.style['left'] = x+'px';
-                this.candidateBox.style['top'] = y+'px';
+                candidateBox.style['left'] = x+'px';
+                candidateBox.style['top'] = y+'px';
             }
         }
         setSize(width,height){
+            let candidateBox = this.getCandidateView();
             if (width && height){
                 let setWidth;
                 let setHeight;
                 if (width == 'auto') setWidth = width; else setWidth = width+'px';
                 if (height == 'auto') setHeight = height; else setHeight = height+'px';
-                this.candidateBox.style['width'] = setWidth;
-                this.candidateBox.style['height'] = setHeight;
+                candidateBox.style['width'] = setWidth;
+                candidateBox.style['height'] = setHeight;
             }
         }
         isVisibility(){
-            return this.candidateBox.style['visibility'] == 'visible';
+            return this.getCandidateView().style['visibility'] == 'visible';
         }
         setVisibility(visible){
+            let candidateBox = this.getCandidateView();
             if (visible){
-                this.candidateBox.style['visibility'] = 'visible';
+                candidateBox.style['visibility'] = 'visible';
             }else{
-                this.candidateBox.style['visibility'] = 'hidden';
+                candidateBox.style['visibility'] = 'hidden';
             }
         }
         getCandidateView(){
-            return this.candidateBox;
+            return document.querySelector('#' + this.boxId);
+        }
+        getCandidateGroup(){
+            return document.querySelector('#' + this.groupId);
         }
         __containerGenerate(){
             // 容器样式
             let style_div = 'position:absolute;\
+                overflow: auto;\
                 min-width:100px;\
                 min-height:50px;\
                 visibility:hidden;\
@@ -506,6 +527,7 @@
             let groupStyle = 'margin:0;padding:0;width:100%;'
             let groupNode = document.createElement('ul');
             groupNode.setAttribute('style',groupStyle);
+            groupNode.setAttribute('id',this.groupId);
             return groupNode;
         }
         __itemNodeGeneraate(text){
@@ -525,14 +547,29 @@
             });
             return itemNode;
         }
+        __getOffsetX(node){
+            let nodeOffsetX = node.offsetLeft;
+            if (node.offsetParent){
+                nodeOffsetX += this.__getOffsetX(node.offsetParent);
+            }
+            return nodeOffsetX;
+        }
+        __getOffsetY(node){
+            let nodeOffsetY = node.offsetTop;
+            if (node.offsetParent){
+                nodeOffsetY += this.__getOffsetY(node.offsetParent);
+            }
+            return nodeOffsetY;
+        }
     }
     // 栏目辅助
     class ColumnAuxiliary{
         constructor(DB){
             this.DB = DB;
+            this.candidateView = new CandidateView();
         }
         apply(windowNode,inputNode){
-            let candidateView = new CandidateView(windowNode,inputNode);
+            this.candidateView.hookNode(windowNode,inputNode);
             // 添加输入监听器
             inputNode.addEventListener('input',e=>{
                 console.log(e.target.value);
@@ -543,7 +580,7 @@
                 this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
                     console.log('query result='+JSON.stringify(columnWeightList));
                     for (let i = 0;i < columnWeightList.length;i++){
-                        candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                        this.candidateView.setCandidateText(columnWeightList[i].column.column_name);
                     }
                 });
             });
@@ -551,9 +588,9 @@
             inputNode.addEventListener('focus',e=>{
                 console.log('get focus');
                 this.__queryAllRelevantColumnHyphenation(e.target.value,columnWeightList=>{
-                    console.log('query result='+JSON.stringify(columnWeightList));
+                    console.log('query success.');
                     for (let i = 0;i < columnWeightList.length;i++){
-                        candidateView.setCandidateText(columnWeightList[i].column.column_name);
+                        this.candidateView.setCandidateText(columnWeightList[i].column.column_name);
                     }
                 });
             });
@@ -562,7 +599,7 @@
             let columnKeywordsDAO = new ColumnKeywordsDAO(this.DB);
             let columnKeywordsColumnDAO = new ColumnKeywordsColumnDAO(this.DB);
             let columnDAO = new ColumnDAO(this.DB);
-
+    
             new Promise((resolve,reject)=>{
                 // 获取所有栏目关键字
                 columnKeywordsDAO.getColumnKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
@@ -639,7 +676,7 @@
                 if (successCallable) successCallable(columnWeightList);
             })
         }
-
+    
     }
     // 正文辅助
     class MainBodyAuxiliary{
@@ -694,63 +731,130 @@
     // 上下文菜单
     class DataAddContextMenu{
         constructor(){
-            this.dataAddContextMenu = this.__contextMenuGenerate();
-            this.dataAddContextMenu.appendChild(this.__actionMenuGenerate());
+            this.dataAddContextMenuId = 'add_context_menu_id';
+            let dataAddContextMenu = this.__contextMenuGenerate();
+            dataAddContextMenu.appendChild(this.__actionMenuGenerate());
+            if (!this.isExist(document.body)){
+                document.body.appendChild(dataAddContextMenu);
+            }
+        }
+        hookWindow(windowNode){
+            // 获取window之间的偏移
+            let windowOffsetX = windowNode.top.innerWidth - windowNode.innerWidth;
+            let windowOffsetY = windowNode.top.innerHeight - windowNode.innerHeight;
+            console.log('Window.mozInnerScreenX='+windowNode.mozInnerScreenX);
+            console.log('Window.screenX='+windowNode.screenX);
+            console.log('wX='+windowOffsetX+'wY='+windowOffsetY);
+            // 添加上下文菜单监听器
+            windowNode.document.addEventListener('contextmenu',e=>{
+                console.log('windows oncontext menu event invoke.')
+                // 调用系统上下文菜单
+                let selection = windowNode.getSelection()
+                if (selection.toString().length == 0) return true;
+                // 调用自定义上下文菜单
+                // 重置菜单按钮状态
+                this.addColumnKeywordsColumnButtonReset();
+                this.addMainBodyKeywordsButtonReset();
+                // 计算菜单显示位置
+                let x = e.pageX + windowOffsetX;
+                let y = e.pageY + windowOffsetY;
+                this.setPosition(x,y);
+                // 设置提示文本
+                let text = selection.toString();
+                this.setValueToInputText(text);
+    
+                this.setVisibility(true);
+                return false;
+            });
+            // 设置鼠标取消上下文事件
+            windowNode.document.addEventListener('mouseup',e=>{
+                // 上下文菜单位置范围
+                let node = this.getDataAddContextMenu();
+                let x1 = node.offsetLeft;
+                let y1 = node.offsetTop;
+                let x2 = x1 + node.offsetWidth;
+                let y2 = y1 + node.offsetHeight;
+                // 当前鼠标位置
+                let mouseX = e.clientX;
+                let mouseY = e.clientY;
+                // 鼠标位置不在上下文菜单范围内则隐藏菜单
+                if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
+                    console.log('hidden context menu.');
+                    this.setVisibility(false);
+                }
+            });
+        }
+        isExist(node){
+            let result = false;
+            if (node.querySelector('#'+this.dataAddContextMenuId)){
+                result = true;
+            }
+            return result;
         }
         getDataAddContextMenu(){
-            return this.dataAddContextMenu;
+            return document.querySelector('#'+this.dataAddContextMenuId);
         }
         setValueToInputText(text){
-            let inputTextNodes = this.dataAddContextMenu.querySelectorAll('[type=text]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            let inputTextNodes = dataAddContextMenu.querySelectorAll('[type=text]');
             for (let i = 0;i < inputTextNodes.length;i++){
                 inputTextNodes[i].setAttribute('value',text);
             }
         }
         isVisibility(){
-            return this.dataAddContextMenu.style['visibility'] == 'visible';
+            return this.getDataAddContextMenu().style['visibility'] == 'visible';
         }
         setVisibility(visible){
+            let dataAddContextMenu = this.getDataAddContextMenu();
             if (visible){
-                this.dataAddContextMenu.style['visibility'] = 'visible';
+                dataAddContextMenu.style['visibility'] = 'visible';
             }else{
-                this.dataAddContextMenu.style['visibility'] = 'hidden';
+                dataAddContextMenu.style['visibility'] = 'hidden';
             }
         }
         setPosition(x,y){
+            let dataAddContextMenu = this.getDataAddContextMenu();
             if (x && y){
-                this.dataAddContextMenu.style['left'] = x+'px';
-                this.dataAddContextMenu.style['top'] = y+'px';
+                dataAddContextMenu.style['left'] = x+'px';
+                dataAddContextMenu.style['top'] = y+'px';
             }
         }
         getColumnKeywordsNode(){
-            return this.dataAddContextMenu.querySelector('[name=columnKeywords]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=columnKeywords]');
         }
         getColumnKeywordsValue(){
             let result = '';
-            let node = this.dataAddContextMenu.querySelector('[name=columnKeywords]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            let node = dataAddContextMenu.querySelector('[name=columnKeywords]');
             if (node) result = node.value;
             return result;
         }
         getColumnNode(){
-            return this.dataAddContextMenu.querySelector('[name=column]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=column]');
         }
         getColumnValue(){
             let result = '';
-            let node = this.dataAddContextMenu.querySelector('[name=column]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            let node = dataAddContextMenu.querySelector('[name=column]');
             if (node) result = node.value;
             return result;
         }
         getMainBodyKeywordsNode(){
-            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
         }
         getMainBodyKeywordsValue(){
             let result = '';
-            let node = this.dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            let node = dataAddContextMenu.querySelector('[name=mainBodyKeywords]');
             if (node) result = node.value;
             return result;
         }
         getAddColumnKeywordsColumnButton(){
-            return this.dataAddContextMenu.querySelector('[name=columnKeywordsColumnSave]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=columnKeywordsColumnSave]');
         }
         setOnClickToAddColumnKeywordsColumn(callable){
             if (!callable) return;
@@ -776,7 +880,8 @@
             node.removeAttribute('disabled');
         }
         getAddMainBodyKeywordsButton(){
-            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
         }
         setOnClickToAddMainBodyKeywords(callable){
             if (!callable) return;
@@ -802,17 +907,20 @@
             node.removeAttribute('disabled');
         }
         getAddMainBodyKeywordsButton(){
-            return this.dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            return dataAddContextMenu.querySelector('[name=mainBodyKeywordsSave]');
         }
         setOnMouseEnterListener(callable){
             if (!callable) return;
-            this.dataAddContextMenu.addEventListener('mouseenter',callable);
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            dataAddContextMenu.addEventListener('mouseenter',callable);
         }
         setOnMouseLeaveListener(callable){
             if (!callable) return;
-            this.dataAddContextMenu.addEventListener('mouseleave',callable);
+            let dataAddContextMenu = this.getDataAddContextMenu();
+            dataAddContextMenu.addEventListener('mouseleave',callable);
         }
-
+    
         // 上下文菜单容器
         __contextMenuGenerate(){
             let contextMenuBox = document.createElement('div');
@@ -822,6 +930,7 @@
                 box-shadow:0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);\
                 z-index:200;\
                 padding:16px;');
+            contextMenuBox.setAttribute('id',this.dataAddContextMenuId);
             return contextMenuBox;
         }
         // 上下文菜单具体实现
@@ -852,7 +961,7 @@
                 user-select: none;\
                 width: 180px;\
                 height: 28px;';
-
+    
                 // padding: 0 8px;\
                 // border: 1px solid;';
             let style_hr = 'border-style: dotted;\
@@ -919,7 +1028,7 @@
             mainBodyKeywordsSaveButton.setAttribute('name','mainBodyKeywordsSave');
             mainBodyKeywordsSaveButton.setAttribute('style',style_input_button);
             actionBox.appendChild(mainBodyKeywordsSaveButton);
-
+    
             return actionBox;
         }
     }
@@ -940,59 +1049,17 @@
                     console.log('columnKeywords-column添加失败')
                     this.contextMenuView.addColumnKeywordsColumnButtonError();
                 });
-
+    
             });
             this.contextMenuView.setOnClickToAddMainBodyKeywords(e=>{
                 this.addMainBodyFilterKeywords(this.contextMenuView.getMainBodyKeywordsValue());
             })
         }
         apply(windownsObj){
-            // 添加上下文菜单到body
-            windownsObj.document.body.appendChild(this.contextMenuView.getDataAddContextMenu());
-            // 设置上下文菜单事件
-            windownsObj.document.oncontextmenu = e=>{
-                console.log('windows oncontext menu event invoke.')
-                // 调用系统上下文菜单
-                let selection = windownsObj.getSelection()
-                if (selection.toString().length == 0) return true;
-                // 调用自定义上下文菜单
-                let x = e.pageX;
-                let y = e.pageY;
-                console.log('window pageXOffset='+windownsObj.pageXOffset)
-                console.log('window pageYOffset='+windownsObj.pageYOffset)
-                console.log('mouse pageX='+e.pageX)
-                console.log('mouse pageY='+e.pageY)
-                let text = selection.toString();
-                console.log('text='+text+',x='+x+',y='+y);
-                
-                this.contextMenuView.addColumnKeywordsColumnButtonReset();
-                this.contextMenuView.addMainBodyKeywordsButtonReset();
-
-                this.contextMenuView.setPosition(x,y);
-                this.contextMenuView.setValueToInputText(text);
-                this.contextMenuView.setVisibility(true);
-
-                return false;
-            }
-            // 设置鼠标取消上下文事件
-            windownsObj.document.onmouseup = e=>{
-                // 上下文菜单位置范围
-                let node = this.contextMenuView.getDataAddContextMenu();
-                let x1 = node.offsetLeft;
-                let y1 = node.offsetTop;
-                let x2 = x1 + node.offsetWidth;
-                let y2 = y1 + node.offsetHeight;
-                // 当前鼠标位置
-                let mouseX = e.clientX;
-                let mouseY = e.clientY;
-                // 鼠标位置不在上下文菜单范围内则隐藏菜单
-                if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
-                    console.log('hidden context menu.');
-                    this.contextMenuView.setVisibility(false);
-                }
-            }
+            this.contextMenuView.hookWindow(windownsObj);
         }
-
+    
+        // 添加栏目关键字-栏目-栏目关系
         addColumnKeywords(keywords,column,successCallable,errorCallable){
             console.log('addColumnKeywords,keywords='+keywords+',column='+column);
             let CKDAO = new ColumnKeywordsDAO(this.DB);
@@ -1063,14 +1130,15 @@
                 })
             })
         }
-
+    
+        // 添加正文关键字
         addMainBodyFilterKeywords(keywords){
             let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(this.DB);
             mainBodyFilterKeywordsDAO.addMainBodyFilterKeywords(keywords,0,e=>{
                 console.log('main body keywords save success.')
             });
         }
-
+    
     }
     // --------------------------------start--------------------------------
     // 数据库连接
@@ -1090,40 +1158,40 @@
         // 主窗口
         articleChange.windownHook(windownNode=>{
             // 启用标题辅助
-
+    
             // 启用栏目推荐辅助
             let columnAuxiliary = new ColumnAuxiliary(DB);
             articleChange.changeColumn((node)=>{
                 columnAuxiliary.apply(windownNode,node);
             });
-
+    
             // 启用数据库辅助
             let databaseAuxiliary = new DatabaseAuxiliary(DB);
             databaseAuxiliary.apply(windownNode);
+            // 数据库栏目启用栏目辅助
             let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
-            columnAuxiliary.apply(windownNode,columnNode);
-
+            columnAuxiliary.apply(window,columnNode);
+    
             // 隐藏页面自带的上下文菜单
             let contextMenuNode = windownNode.document.querySelector('#edui_fixedlayer');
             if (contextMenuNode) contextMenuNode.style['top'] = 'auto';
-        })
-        // 正文窗口
-        articleChange.mainBodyIframeWindowHook(mainBodyWindow=>{
-            // 启用数据库辅助
-            let databaseAuxiliary = new DatabaseAuxiliary(DB);
-            databaseAuxiliary.apply(mainBodyWindow);
-            let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
-            // 启用栏目推荐辅助
-            let columnAuxiliary = new ColumnAuxiliary(DB);
-            columnAuxiliary.apply(mainBodyWindow,columnNode);
-        });
-        // 启用正文辅助
-        let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(DB);
-        mainBodyFilterKeywordsDAO.getMainBodyFilterKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
-            let keywordsList = event.target.result;
-            let mainBodyAuxiliary = new MainBodyAuxiliary();
-            articleChange.changeMainBody(node=>{
-                mainBodyAuxiliary.apply(node,keywordsList);
+            // -----------------------------------------------------------------------------
+            // 正文窗口
+            articleChange.mainBodyIframeWindowHook(mainBodyWindow=>{
+                // 启用数据库辅助
+                databaseAuxiliary.apply(mainBodyWindow);
+                let columnNode = databaseAuxiliary.contextMenuView.getColumnNode();
+                // 启用栏目推荐辅助
+                columnAuxiliary.apply(mainBodyWindow,columnNode);
+            });
+            // 启用正文辅助
+            let mainBodyFilterKeywordsDAO = new MainBodyFilterKeywordsDAO(DB);
+            mainBodyFilterKeywordsDAO.getMainBodyFilterKeywordsAll(IDBKeyRange.lowerBound(0),event=>{
+                let keywordsList = event.target.result;
+                let mainBodyAuxiliary = new MainBodyAuxiliary();
+                articleChange.changeMainBody(node=>{
+                    mainBodyAuxiliary.apply(node,keywordsList);
+                })
             });
         });
     }

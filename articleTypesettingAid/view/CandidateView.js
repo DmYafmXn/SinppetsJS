@@ -1,72 +1,85 @@
 class CandidateView{
-    constructor(windowNode,hookNode){
-        this.hookNode = hookNode;
+    constructor(){
         this.boxId = 'container_box';
-        this.candidateBox = this.__containerGenerate();
-        this.groupNode = this.__groupNodeGenerate();
-        this.candidateBox.appendChild(this.groupNode);
-        // 添加鼠标监听
-        this.inBoxRange = false;
-        this.candidateBox.addEventListener('mouseenter',e=>{
-            this.inBoxRange = true;
-        });
-        this.candidateBox.addEventListener('mouseleave',e=>{
-            this.inBoxRange = false;
-        });
+        this.groupId = 'cotainer_group';
+        let candidateBox = this.__containerGenerate();
+        let groupNode = this.__groupNodeGenerate();
+        candidateBox.appendChild(groupNode);
         // 添加候选区到页面
-        if (!this.isExist(windowNode.document.body)){
-            windowNode.document.body.appendChild(this.candidateBox);
+        if (!this.isExist(document.body)){
+            document.body.appendChild(candidateBox);
         }
+    }
+
+    hookNode(windowNode,node){
+        let candidateBox = this.getCandidateView();
+        // 获取window之间的偏移
+        let windowOffsetX = windowNode.top.innerWidth - windowNode.innerWidth;
+        let windowOffsetY = windowNode.top.innerHeight - windowNode.innerHeight;
+        console.log('wX='+windowOffsetX+'wY='+windowOffsetY);
         // 添加输入监听器
-        hookNode.addEventListener('input',e=>{
+        node.addEventListener('input',e=>{
+            console.log('candidate view hook node input event.')
             this.clearCandidateTexts();
         });
         // 添加获取焦点监听器
-        hookNode.addEventListener('focus',e=>{
+        node.addEventListener('focus',e=>{
+            console.log('candidate view hook node focus event.')
             let eventNode = e.target;
+            // 获取input节点偏移
             let nodeOffsetX = this.__getOffsetX(eventNode);
             let nodeOffsetY = this.__getOffsetY(eventNode);
-            let x = nodeOffsetX;
-            let y = nodeOffsetY + eventNode.offsetHeight;
-            if (this.__getOffsetX(this.candidateBox) == x && this.__getOffsetY(this.candidateBox) == y){
-                if (this.isVisibility()){
-                    return;
-                }else{
-                    this.setVisibility(true);
-                }
+            // 计算候选区节点所需偏移
+            let x = windowOffsetX + nodeOffsetX;
+            let y = windowOffsetY + nodeOffsetY + eventNode.offsetHeight;
+            // 获取当前候选区的偏移
+            let nowX = this.__getOffsetX(candidateBox) + windowOffsetX;
+            let nowY = this.__getOffsetY(candidateBox) + windowOffsetY;
+            // 设置候选区偏移
+            if (nowX != x || nowY != y){
+                this.setPosition(x,y);
             }
-            this.setPosition(x,y);
-            this.setSize(eventNode.offsetWidth,'auto');
+            // 设置候选区宽度
+            if (candidateBox.offsetWidth != eventNode.offsetWidth){
+                this.setSize(eventNode.offsetWidth,eventNode.offsetWidth);
+            }
+            // 清除候选区文本
             this.clearCandidateTexts();
+            // 候选区显示
             this.setVisibility(true);
         });
         // 添加失去焦点监听器
-        hookNode.addEventListener('blur',e=>{
-            if (!this.inBoxRange){
+        node.addEventListener('blur',e=>{
+            console.log('candidate view hook node blur event.')
+            let inputNode = e.target;
+            // 输入节点位置范围
+            let inputNodeX1 = inputNode.offsetLeft;
+            let inputNodeY1 = inputNode.offsetTop;
+            let inputNodeX2 = inputNode.offsetWidth + inputNodeX1;
+            let inputNodeY2 = inputNode.offsetHeight + inputNodeY1;
+            // 候选区位置范围
+            let x1 = candidateBox.offsetLeft;
+            let y1 = candidateBox.offsetTop;
+            let x2 = x1 + candidateBox.offsetWidth;
+            let y2 = y1 + candidateBox.offsetHeight;
+            // 当前鼠标位置
+            let mouseX = e.clientX;
+            let mouseY = e.clientY;
+            // 鼠标位置不在候选区范围内则隐藏菜单
+            if (mouseX < x1 || mouseX > x2 || mouseY < y1 || mouseY > y2){
+                console.log('hidden candidateBox.');
                 this.setVisibility(false);
             }
         });
         // 添加鼠标右键监听器
-        hookNode.addEventListener('mouseup', e=>{
+        node.addEventListener('mouseup', e=>{
+            console.log('candidate view hook node mouseup event.')
             if(e.button == 2){
                 this.setVisibility(false);
             }
         });
     }
-    __getOffsetX(node){
-        let nodeOffsetX = node.offsetLeft;
-        if (node.offsetParent){
-            nodeOffsetX += this.__getOffsetX(node.offsetParent);
-        }
-        return nodeOffsetX;
-    }
-    __getOffsetY(node){
-        let nodeOffsetY = node.offsetTop;
-        if (node.offsetParent){
-            nodeOffsetY += this.__getOffsetY(node.offsetParent);
-        }
-        return nodeOffsetY;
-    }
+
     isExist(node){
         let result = false;
         if (node.querySelector('#'+this.boxId)){
@@ -75,10 +88,11 @@ class CandidateView{
         return result;
     }
     setCandidateText(text){
-        if (this.groupNode.firstChild){
-            this.groupNode.insertBefore(this.__itemNodeGeneraate(text),this.groupNode.firstChild);
+        let groupNode = this.getCandidateGroup();
+        if (groupNode.firstChild){
+            groupNode.insertBefore(this.__itemNodeGeneraate(text),groupNode.firstChild);
         }else{
-            this.groupNode.appendChild(this.__itemNodeGeneraate(text));
+            groupNode.appendChild(this.__itemNodeGeneraate(text));
         }
     }
     setCandidateTexts(textList){
@@ -90,40 +104,47 @@ class CandidateView{
         }
     }
     clearCandidateTexts(){
-        this.groupNode.innerHTML = '';
+        this.getCandidateGroup().innerHTML = '';
     }
     setPosition(x,y){
+        let candidateBox = this.getCandidateView();
         if (x && y){
-            this.candidateBox.style['left'] = x+'px';
-            this.candidateBox.style['top'] = y+'px';
+            candidateBox.style['left'] = x+'px';
+            candidateBox.style['top'] = y+'px';
         }
     }
     setSize(width,height){
+        let candidateBox = this.getCandidateView();
         if (width && height){
             let setWidth;
             let setHeight;
             if (width == 'auto') setWidth = width; else setWidth = width+'px';
             if (height == 'auto') setHeight = height; else setHeight = height+'px';
-            this.candidateBox.style['width'] = setWidth;
-            this.candidateBox.style['height'] = setHeight;
+            candidateBox.style['width'] = setWidth;
+            candidateBox.style['height'] = setHeight;
         }
     }
     isVisibility(){
-        return this.candidateBox.style['visibility'] == 'visible';
+        return this.getCandidateView().style['visibility'] == 'visible';
     }
     setVisibility(visible){
+        let candidateBox = this.getCandidateView();
         if (visible){
-            this.candidateBox.style['visibility'] = 'visible';
+            candidateBox.style['visibility'] = 'visible';
         }else{
-            this.candidateBox.style['visibility'] = 'hidden';
+            candidateBox.style['visibility'] = 'hidden';
         }
     }
     getCandidateView(){
-        return this.candidateBox;
+        return document.querySelector('#' + this.boxId);
+    }
+    getCandidateGroup(){
+        return document.querySelector('#' + this.groupId);
     }
     __containerGenerate(){
         // 容器样式
         let style_div = 'position:absolute;\
+            overflow: auto;\
             min-width:100px;\
             min-height:50px;\
             visibility:hidden;\
@@ -141,6 +162,7 @@ class CandidateView{
         let groupStyle = 'margin:0;padding:0;width:100%;'
         let groupNode = document.createElement('ul');
         groupNode.setAttribute('style',groupStyle);
+        groupNode.setAttribute('id',this.groupId);
         return groupNode;
     }
     __itemNodeGeneraate(text){
@@ -159,5 +181,19 @@ class CandidateView{
             this.setVisibility(false);
         });
         return itemNode;
+    }
+    __getOffsetX(node){
+        let nodeOffsetX = node.offsetLeft;
+        if (node.offsetParent){
+            nodeOffsetX += this.__getOffsetX(node.offsetParent);
+        }
+        return nodeOffsetX;
+    }
+    __getOffsetY(node){
+        let nodeOffsetY = node.offsetTop;
+        if (node.offsetParent){
+            nodeOffsetY += this.__getOffsetY(node.offsetParent);
+        }
+        return nodeOffsetY;
     }
 }
