@@ -1,3 +1,18 @@
+// ==UserScript==
+// @name         mangaDownload18comic
+// @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
+// @version      0.1
+// @author       centesimal
+// @description  download manga for 18comic.
+// @icon         https://18comic.org/favicon.ico
+// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comicCDN.js
+// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comicCDN.js
+// @supportURL   https://gitee.com/centesimal/sinppets-js
+// @match        *://cdn-msp.18comic.(vip|org)/*
+// @run-at       document-idle
+// @grant        none
+// ==/UserScript==
+
 // 动态加载js库
 class DynamicLoad{
     constructor(){
@@ -709,6 +724,15 @@ class HorizontalProgress{
     }
 }
 
+// 添加全局样式
+function addGlobalStyle(css) {
+	let head = document.getElementsByTagName('head')[0];
+	if (!head) { return; }
+	let style = document.createElement('style');
+	style.type = 'text/css';
+	style.innerHTML = css;
+	head.appendChild(style);
+}
 
 // 保存漫画
 function mangaSave(file,progressListenerFn){
@@ -812,19 +836,9 @@ function scriptExecuteJudge(){
 function sleep(time){
     return new Promise((resolve) => setTimeout(resolve,time));
 }
-// ---------------- script start ---------------- //
-(() => {
-//     if (scriptExecuteJudge()){
-//         // 脚本已经执行过，直接返回
-//         return;
-//     }
-//     // 脚本第一次执行
-//     // 判断页面是否符合要求
-//     if (!pageDistinguish()){
-//         // 不符合要求，直接返回
-//         return;
-//     }
-    // 页面符合要求
+
+// 下载开始
+function downloadStart(){
     // 添加操作视图
     let upView = new ImageInformationUpView();
     upView.getOkButton().addEventListener('click',() => {
@@ -851,5 +865,21 @@ function sleep(time){
             });
         }
     });
+}
+
+// ---------------- script start ---------------- //
+(() => {
+    if (scriptExecuteJudge()){
+        // 脚本已经执行过，直接返回
+        return;
+    }
+    // 脚本第一次执行
+    // 判断页面是否符合要求
+    if (!pageDistinguish()){
+        // 不符合要求，直接返回
+        return;
+    }
+    // 页面符合要求
+    downloadStart();
 })();
 

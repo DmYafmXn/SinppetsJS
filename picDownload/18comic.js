@@ -1,3 +1,18 @@
+// ==UserScript==
+// @name         mangaAnalysis18comic
+// @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
+// @version      0.1
+// @author       centesimal
+// @description  analysis manga for 18comic.
+// @icon         https://18comic.org/favicon.ico
+// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comic.js
+// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comic.js
+// @supportURL   https://gitee.com/centesimal/sinppets-js
+// @match        *://18comic.(vip|org)/album/*
+// @run-at       document-idle
+// @grant        none
+// ==/UserScript==
+
 // 动态加载
 class DynamicLoad{
     constructor(){
@@ -450,6 +465,16 @@ function scriptExecuteJudge(){
     return false;
 }
 
+// 开始分析
+function analysisStart(){
+    let actionView = new MangaInfoActionView();
+    actionView.addAnalysisButtonOnClickListener(() => {
+        saveMangaInformationToJson();
+    }).addJumpButtonOnClickListener(() => {
+        window.location.href = document.querySelector('img[itemprop=image]').src;
+    });
+}
+
 // ---------------- script start ---------------- //
 (() => {
     if (scriptExecuteJudge()){
@@ -465,11 +490,7 @@ function scriptExecuteJudge(){
         return;
     }
     // 页面符合要求
-    let actionView = new MangaInfoActionView();
-    actionView.addAnalysisButtonOnClickListener(() => {
-        saveMangaInformationToJson();
-    }).addJumpButtonOnClickListener(() => {
-        window.location.href = document.querySelector('img[itemprop=image]').src;
-    });
+    analysisStart();
+    
 })();
 
