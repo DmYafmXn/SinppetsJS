@@ -1,15 +1,19 @@
 // ==UserScript==
-// @name         mangaAnalysis18comic
+// @name         WnacgAnalysis
 // @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
 // @version      0.1
 // @author       centesimal
-// @description  analysis manga for 18comic.
-// @icon         https://18comic.org/favicon.ico
-// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comic.js
-// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comic.js
+// @description  analysis manga for wancg.
+// @icon         https://wnacg.org/favicon.ico
+// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/wnacg.js
+// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/wnacg.js
 // @supportURL   https://gitee.com/centesimal/sinppets-js
-// @match        *://18comic.vip/*
-// @match        *://18comic.org/*
+// @match        *://wnacg.org/*
+// @match        *://m.wnacg.org/*
+// @match        *://img1.wnacg.org/*
+// @match        *://img2.wnacg.org/*
+// @match        *://img3.wnacg.org/*
+// @match        *://img4.wnacg.org/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
@@ -145,18 +149,32 @@ function getFileForUrl(url,responseType,header){
 class MangaAnalysis{
     constructor(mangaInfoPage){
         this.mangaInfoPage = mangaInfoPage;
+        this.mangaNumber = null;
+        this.mangaTitle = null;
+        this.mangaDetails = null;
+        this.mangaChapterTitles = null;
+        this.mangaChapterLinks = null;
+        this.mangaChapterImageLinks = null;
     }
 
     // 解析漫画编号
     mangaNumberAnalysis(){
+        if (this.mangaNumber){
+            return this.mangaNumber;
+        }
         let patternMangeNumber = /\d+/;
-        return window.location.pathname.match(patternMangeNumber).toString();
+        this.mangaNumber = window.location.pathname.match(patternMangeNumber).toString()
+        return this.mangaNumber;
     }
 
     // 解析漫画标题
     mangaTitleAnalysis(){
-        let patternTitle = /(?<=<h1>).*(?=<\/h1>)/;
-        return this.mangaInfoPage.match(patternTitle).toString();
+        if (this.mangaTitle){
+            return this.mangaTitle;
+        }
+        let patternTitle = /(?<=id="comicName">)(.|\s)*?(?=<\/div>)/g;
+        this.mangaTitle = this.mangaInfoPage.match(patternTitle).toString()
+        return this.mangaTitle;
     }
 
     // 解析漫画简介
@@ -164,18 +182,11 @@ class MangaAnalysis{
         /*
         * return 如果提取到简介会返回一个字符串，否则返回null
         */
-        let patternDivBlock = /(?<=intro-block">)(.|\s)*?<\/div>/g;
-        let divBlockResult = this.mangaInfoPage.match(patternDivBlock);
-        // 提取简介
-        let details = null;
-        if (divBlockResult){
-            let patternDetails = /(?<=>)(.|\s)*?(?=<\/div>)/g;
-            details = divBlockResult.toString().match(patternDetails);
-            if(details){
-                details = details.toString();
-            }
+        if (this.mangaDetails){
+            return this.mangaDetails;
         }
-        return details.trim();
+        this.mangaDetails = null;
+        return this.mangaDetails;
     }
 
     // 解析漫画章节标题
@@ -183,49 +194,39 @@ class MangaAnalysis{
         /*
         * return 如果提取到标题会返回一个数组，否则返回null
         */
-        // 提取相关信息块
-        let patternDivBlock = /download-block(.|\s)*?<\/div>/g;
-        let divBlockResult = this.mangaInfoPage.match(patternDivBlock);
-        // 提取标题
-        let titles = null;
-        if (divBlockResult){
-            let patternTitle = /(?<=<li>\s)(.|\s)*?(?=<i)/g;
-            titles = divBlockResult.toString().match(patternTitle);
+        if (this.mangaChapterTitles){
+            return this.mangaChapterTitles;
         }
-
-        return titles;
+        this.mangaChapterTitles = [this.mangaTitleAnalysis()];
+        return this.mangaChapterTitles;
     }
     // 解析漫画章节链接
     mangaChapterLinkAnalysis(){
-        // 提取相关信息块
-        let patternUlBlock = /<ul class="btn-toolbar(.|\s)*?<\/ul>/i;
-        let ulBlockResult = this.mangaInfoPage.match(patternUlBlock);
-        let patternLink,linkResult;
-        if (ulBlockResult){
-            // 相关信息块存在，该漫画为多章漫画，多章提取链接
-            patternLink = /(?<=\<a href=").*?(?=\">)/g;
-            linkResult = ulBlockResult[0].match(patternLink);
-        }else{
-            // 相关信息块为空，该漫画为单章漫画
-            patternLink = /(?<=\<a href=")\/photo\/.*?(?=\">)/g;
-            linkResult = this.mangaInfoPage.match(patternLink);
-            // 删除重复项
-            linkResult.pop();
+        /*
+        * return 如果提取到链接会返回一个数组，否则返回null
+        */
+        if (this.mangaChapterLinks){
+            return this.mangaChapterLinks;
         }
-        let links = [];
-        let baseUrl = window.location.protocol + '//' + window.location.host;
-        for (let i = 0;i < linkResult.length;i++){
-            links.push(baseUrl + linkResult[i]);
-        }
+        this.mangaChapterLinks = [`https://wnacg.org/photos-gallery-aid-${this.mangaNumberAnalysis()}.html`];
 
-        return links;
+        return this.mangaChapterLinks;
     }
 
     // 解析漫画章节图片链接
     mangaChapterImageLinkAnalysis(chapterImagePage){
-        let patternLink = /(?<=data-original=").*?(?=" id=)/g;
-        let links = chapterImagePage.match(patternLink);
-        return links;
+        if (this.mangaChapterImageLinks){
+            return this.mangaChapterImageLinks;
+        }
+        // 提取链接块
+        let patternBlocks = /{.*}/g;
+        let blocks = chapterImagePage.match(patternBlocks);
+        // 添加host
+        blocks = blocks[0].replaceAll('//','https://');
+        // 提取链接
+        let patternLink = /https:\/\/.*?(?=\\")/g;
+        this.mangaChapterImageLinks = blocks.match(patternLink);
+        return this.mangaChapterImageLinks;
     }
 
     // 漫画图片名称生成
@@ -233,7 +234,7 @@ class MangaAnalysis{
         let result = [];
         for (let i = 0;i < imageLinks.length;i++){
             // 提取图片格式
-            let imageType = imageLinks[i].split('?')[0].split('.').pop();
+            let imageType = imageLinks[i].split('.').pop();
             // 名称生成
             let name = i.toString().padStart(5,'0') + '.' + imageType;
             result.push({'name':name,'link':imageLinks[i]});
@@ -241,6 +242,59 @@ class MangaAnalysis{
         return result;
     }
 
+}
+
+class MangaAnalysisTest{
+    constructor(){
+        getFileForUrl(document.URL).then((infoPage) => {
+            this.mangaAnalysis = new MangaAnalysis(infoPage);
+            this.mangaNumberAnalysisTest();
+            this.mangaTitleAnalysisTest();
+            this.mangaDetailsAnalysisTest();
+            this.mangaChapterTitlesAnalysisTest();
+            this.mangaChapterLinkAnalysisTest();
+            return getFileForUrl(this.mangaAnalysis.mangaChapterLinkAnalysis()[0]);
+        }).then((imagePage) => {
+            let links = this.mangaChapterImageLinkAnalysisTest(imagePage);
+            this.generateImageNameTest(links);
+        });
+    }
+
+    // 解析漫画编号
+    mangaNumberAnalysisTest(){
+        console.log(this.mangaAnalysis.mangaNumberAnalysis());
+    }
+
+    // 解析漫画标题
+    mangaTitleAnalysisTest(){
+        console.log(this.mangaAnalysis.mangaTitleAnalysis());
+    }
+
+    // 解析漫画简介
+    mangaDetailsAnalysisTest(){
+        console.log(this.mangaAnalysis.mangaDetailsAnalysis());
+    }
+
+    // 解析漫画章节标题
+    mangaChapterTitlesAnalysisTest(){
+        console.log(this.mangaAnalysis.mangaChapterTitlesAnalysis());
+    }
+    // 解析漫画章节链接
+    mangaChapterLinkAnalysisTest(){
+        console.log(this.mangaAnalysis.mangaChapterLinkAnalysis());
+    }
+
+    // 解析漫画章节图片链接
+    mangaChapterImageLinkAnalysisTest(chapterImagePage){
+        let links = this.mangaAnalysis.mangaChapterImageLinkAnalysis(chapterImagePage)
+        console.log(links);
+        return links;
+    }
+
+    // 漫画图片名称生成
+    generateImageNameTest(imageLinks){
+        console.log(this.mangaAnalysis.generateImageName(imageLinks));
+    }
 }
 
 // 漫画信息生成
@@ -425,33 +479,44 @@ class MangaInfoActionView{
 }
 
 // 保存漫画信息
-function saveMangaInformationToJson(){
-    let identification = '18comic';
-    let fileSaverUrl = 'https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
-    let dynamicLoad = new DynamicLoad();
-    let mangaAnalysis;
-    let mangaInfoGeneration;
-    // 加载依赖脚本
-    dynamicLoad.jsDynamicLoad(fileSaverUrl).then(() => {
-        // 脚本加载完成
-        console.log('load script finish.');
-        // 获取当前页面文本
-        return getFileForUrl(document.URL);
-    }).then((mangaInfoPage) => {
-        // 文本获取成功
-        mangaAnalysis = new MangaAnalysis(mangaInfoPage);
-        mangaInfoGeneration = new MangaInfoGeneration(mangaAnalysis,identification);
-        // 漫画信息生成
-        return mangaInfoGeneration.generationMangaInfo();
-    }).then(() => {
-        // 漫画信息生成成功
-        mangaInfoGeneration.saveMangaInformation();
-    });
+function analysisManga(){
+    return new Promise((resolve,reject) => {
+        let identification = 'wnacg';
+        let fileSaverUrl = 'https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
+        let dynamicLoad = new DynamicLoad();
+        let mangaAnalysis;
+        let mangaInfoGeneration;
+        // 加载依赖脚本
+        dynamicLoad.jsDynamicLoad(fileSaverUrl).then(() => {
+            // 脚本加载完成
+            console.log('load script finish.');
+            // 获取当前页面文本
+            return getFileForUrl(document.URL);
+        }).then((mangaInfoPage) => {
+            // 文本获取成功
+            mangaAnalysis = new MangaAnalysis(mangaInfoPage);
+            mangaInfoGeneration = new MangaInfoGeneration(mangaAnalysis,identification);
+            // 漫画信息生成
+            return mangaInfoGeneration.generationMangaInfo();
+        }).then(() => {
+            // 漫画信息生成成功
+            resolve(mangaInfoGeneration);
+        }).catch((err) => {
+            reject(err);
+        });
+    })
+
 }
 
 // 页面识别
 function pageDistinguish(){
-    let patternUrl = /(http|https):\/\/18comic.(vip|org)\/album\/\d+/g;
+    let patternUrl = /(http|https):\/\/.*.wnacg.org\/photos-index-aid-\d+.html/g;
+    return window.location.href.search(patternUrl) > -1;
+}
+
+// 下载页面识别
+function downloadPageDistinguish(){
+    let patternUrl = /(http|https):\/\/.+.wnacg.org\/data\/.+/g;
     return window.location.href.search(patternUrl) > -1;
 }
 
@@ -469,10 +534,20 @@ function scriptExecuteJudge(){
 // 开始分析
 function analysisStart(){
     let actionView = new MangaInfoActionView();
+    let mangaInfo = null;
     actionView.addAnalysisButtonOnClickListener(() => {
-        saveMangaInformationToJson();
+        if (mangaInfo){
+            return;
+        }
+        analysisManga().then((mangaInfoGeneration) => {
+            mangaInfo = mangaInfoGeneration;
+            console.log(mangaInfo);
+            mangaInfo.saveMangaInformation();
+        });
     }).addJumpButtonOnClickListener(() => {
-        window.location.href = document.querySelector('img[itemprop=image]').src;
+        if (mangaInfo){
+            window.location.href = mangaInfo.mangaInfo.chapter[0].images[0].link;
+        }
     });
 }
 
@@ -485,13 +560,19 @@ function analysisStart(){
     }
     // 脚本第一次执行
     // 判断页面是否符合要求
-    if (!pageDistinguish()){
-        console.log('This page is no distinguish.');
-        // 不符合要求，直接返回
-        return;
+    if (pageDistinguish()){
+        // 页面符合要求
+        analysisStart();
+    }else if(downloadPageDistinguish()){
+        let dynamicLoad = new DynamicLoad();
+        let downloadJs = 'https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js';
+        dynamicLoad.jsDynamicLoad(downloadJs).then(() => {
+            console.log('download js loading finish.');
+        })
     }
-    // 页面符合要求
-    analysisStart();
-    
+    console.log('This page is no distinguish.');
 })();
 
+// 详情：https://wnacg.org/photos-index-aid-134812.html
+// 漫画：https://wnacg.org/photos-slide-aid-134812.html
+// 链接：https://wnacg.org/photos-gallery-aid-134812.html

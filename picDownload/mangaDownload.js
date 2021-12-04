@@ -1,145 +1,15 @@
 // ==UserScript==
-// @name         mangaDownload18comic
+// @name         mangaDownload
 // @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
 // @version      0.1
 // @author       centesimal
-// @description  download manga for 18comic.
-// @icon         https://18comic.org/favicon.ico
-// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comicCDN.js
-// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/18comicCDN.js
+// @description  download manga.
+// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js
+// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js
 // @supportURL   https://gitee.com/centesimal/sinppets-js
-// @match        *://18comic.vip/*
-// @match        *://18comic.org/*
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
-
-// 动态加载js库
-class DynamicLoad{
-    constructor(){
-        this.jsLoadOnFinishListener = null;
-    }
-
-    __jsLoad(url){
-        return new Promise((resolve,reject) => {
-            let notificationInfo = {'url':url,'result':null,'failInformation':null};
-
-            let headNode = document.getElementsByTagName('head')[0];
-            let scriptNode = document.createElement('script');
-            scriptNode.setAttribute('type','text/javascript');
-            scriptNode.onload = (event) => {
-                notificationInfo['result'] = 'success';
-                resolve(notificationInfo);
-            };
-            scriptNode.onerror = (event) => {
-                notificationInfo['result'] = 'fail';
-                notificationInfo['failInformation'] = 'onerror';
-                reject(notificationInfo);
-            };
-            scriptNode.onabort = () => {
-                notificationInfo['result'] = 'fail';
-                notificationInfo['failInformation'] = 'onabort';
-                reject(notificationInfo);
-            };
-            scriptNode.setAttribute('src',url);
-            headNode.appendChild(scriptNode);
-        });
-    }
-
-    jsDynamicLoad(jsUrls){
-        return new Promise((resolve,reject) => {
-            // 加载数据初始化
-            let loadTask = {'loadUrls':null,'taskList':null,'successTask':null,'failTask':null};
-            if (Array.isArray(jsUrls)){
-                if(jsUrls['loadUrls']){
-                    // 失败任务重新加载
-                    loadTask['taskList'] = [];
-                    for (let i = 0;i < loadTask['failTask'];i++){
-                        loadTask['taskList'].push(loadTask['failTask'][i]['url']);
-                    }
-                    loadTask['failTask'] = [];
-                }else{
-                    // 多个新任务全部加载
-                    loadTask['loadUrls'] = jsUrls;
-                    loadTask['taskList'] = loadTask['loadUrls'];
-                    loadTask['successTask'] = [];
-                    loadTask['failTask'] = [];
-                }
-            }else{
-                // 单个新任务加载
-                loadTask['loadUrls'] = [jsUrls];
-                loadTask['taskList'] = loadTask['loadUrls'];
-                loadTask['successTask'] = [];
-                loadTask['failTask'] = [];
-            }
-            let notificationInfo = {'allTask':loadTask['taskList'].length,
-                                    'nowTask':0,
-                                    'successTask':0,
-                                    'failTask':0,
-                                    'result':null
-            };
-            // 开始加载
-            for (let i = 0;i < notificationInfo['allTask'];i++){
-                this.__jsLoad(loadTask['taskList'][i]).then((loadInfo) => {
-                    // js加载成功
-                    loadTask['successTask'].push(loadInfo);
-                    notificationInfo['successTask'] += 1;
-                    notificationInfo['result'] = loadInfo;
-                }).catch((loadInfo) => {
-                    // js加载失败
-                    loadTask['failTask'].push(loadInfo)
-                    notificationInfo['failTask'] += 1;
-                    notificationInfo['result'] = loadInfo;
-                }).finally(() => {
-                    // js加载任务完成
-                    notificationInfo['nowTask'] += 1;
-                    // 通知js加载完成监听器
-                    if (this.jsLoadOnFinishListener){
-                        this.jsLoadOnFinishListener(notificationInfo);
-                    }
-                    // 所有任务完成
-                    if (notificationInfo['nowTask'] == notificationInfo['allTask']){
-                        if (notificationInfo['failTask'] == 0){
-                            resolve(loadTask);
-                        }else{
-                            reject(loadTask);
-                        }
-                    }
-                });
-            }
-        });
-    }
-
-    addJsLoadOnFinishListener(listener){
-        this.jsLoadOnFinishListener = listener;
-        return this;
-    }
-    
-}
-
-// AJAX GET方法下载文件到内存
-function getFileForUrl(url,responseType,header){
-    return new Promise((resolve, reject) => {
-        let xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-              if (xhr.status === 200) {
-                  resolve(xhr.response);
-              } else {
-                  reject(xhr.status);
-              }
-            }
-        }
-        xhr.open('get',url,true);
-        if (header){
-            xhr.setRequestHeader(header);
-        }
-        if (responseType){
-            xhr.responseType = responseType;
-        }
-        xhr.send();
-    });
-}
 
 // 从文件中读取漫画信息
 function readMangaInformationForFile(mangaJsonFile){
@@ -150,7 +20,7 @@ function readMangaInformationForFile(mangaJsonFile){
             resolve(JSON.parse(mangaInfoText));
         }
         fileReader.onabort = () => {
-            reject('file read abort.')
+            reject('file read abort.');
         }
         fileReader.onerror = (event) => {
             reject(event.target.error);
@@ -160,14 +30,12 @@ function readMangaInformationForFile(mangaJsonFile){
 }
 
 // 漫画下载类
-class MangaDownloadFor18Comic{
+class MangaDownload{
     constructor(){
         this.downloadImageOnFinish = null;
         this.downloadChapterOnFinish = null;
         this.saveImageOnFinish = null;
         this.saveChapterOnFinish = null;
-        this.imageRestoreOnFinish = null;
-        this.chapterRestoreOnFinish = null;
     }
 
     // 漫画图片下载
@@ -397,157 +265,6 @@ class MangaDownloadFor18Comic{
         return this;
     }
 
-    // 漫画图片还原
-    __imageRestore(mangaNumber,imageDownloadInfo){
-        return new Promise((resolve, reject) => {
-            let imageLink = imageDownloadInfo['imageInfo']['link'];
-            let imageNumber = imageLink.split('?')[0].split('/').pop().split('.')[0];
-            let imageBlob = imageDownloadInfo['blob'];
-            // 漫画编号小于220980的图片不需要还原
-            if (mangaNumber < 220980){
-                resolve(imageDownloadInfo);
-                return;
-            }
-            // 图片分割数量
-            let splitNum = 10;
-            if (mangaNumber >= 268850){
-                let mangaInfo = mangaNumber + '' + imageNumber;
-                let mangaInfoMD5 = md5(mangaInfo);
-                let endStr = mangaInfoMD5.substr(-1);
-                let endStrUnicode = endStr.charCodeAt();
-                splitNum = 2 + 2 * (endStrUnicode % 10);
-            }
-            // 将图片加载到img节点上
-            let imageNode = new Image();   // 创建img元素
-            let url = URL.createObjectURL(imageBlob);
-            imageNode.onload = function(){
-                // 回收内存
-                URL.revokeObjectURL(url);
-                // 还原图片
-                let canvas = document.createElement('canvas');
-                // 设置canvas大小
-                canvas.width = imageNode.naturalWidth;
-                canvas.height = imageNode.naturalHeight;
-                if (canvas.getContext){
-                    let canvas2D = canvas.getContext('2d');
-                    for (let i = 0;i < splitNum;i++){
-                        let randomNum = parseInt(canvas.height % splitNum);
-                        let splitHeight = Math.floor(canvas.height / splitNum);
-                        let sourceY = canvas.height - splitHeight * (i + 1) - randomNum;
-                        let newY = splitHeight * i;
-                        if (0 === i){
-                            splitHeight += randomNum;
-                        }else{
-                            newY += randomNum;
-                        }
-                        canvas2D.drawImage(imageNode,
-                                            0,sourceY,canvas.width,splitHeight,
-                                            0,newY,canvas.width,splitHeight
-                        );
-                    }
-                    let imageType = imageDownloadInfo['imageInfo']['name'].split('.').pop();
-                    if (imageType == 'jpg'){
-                        imageType = 'jpeg';
-                    }
-                    canvas.toBlob(function(blob){
-                        imageDownloadInfo['blob'] = blob;
-                        resolve(imageDownloadInfo);
-                    },'image/' + imageType);
-                }
-            }
-            imageNode.src = url;
-        });
-    }
-
-    // 漫画章节还原
-    __chapterRestore(mangaNumber,chapterDownloadInfo){
-        return new Promise((resolve,reject) => {
-            let notificationInfo = {
-                'allTask':chapterDownloadInfo['downloadSuccess'].length,
-                'nowTask':0,
-                'successTask':0,
-                'failTask':0,
-                'result':0
-            };
-            for (let i = 0;i < notificationInfo['allTask'];i++){
-                this.__imageRestore(mangaNumber,chapterDownloadInfo['downloadSuccess'][i]).then((imageRestoreInfo) => {
-                    notificationInfo['successTask'] += 1;
-                    notificationInfo['result'] = imageRestoreInfo;
-                }).catch((imageRestoreInfo) => {
-                    // 章节图片压缩失败
-                    notificationInfo['failTask'] += 1;
-                    notificationInfo['result'] = imageRestoreInfo;
-                }).finally(() => {
-                    // 下载任务完成
-                    notificationInfo['nowTask'] += 1;
-                    // 通知图片还原完成监听器
-                    if (this.imageRestoreOnFinish){
-                        this.imageRestoreOnFinish(notificationInfo);
-                    }
-                    // 所有任务完成
-                    if (notificationInfo['nowTask'] == notificationInfo['allTask']){
-                        if (notificationInfo['failTask'] == 0){
-                            resolve();
-                        }else{
-                            reject();
-                        }
-                    }
-                });
-            }
-        });
-    }
-    
-    addImageRestoreOnFinishListener(listener){
-        this.imageRestoreOnFinish = listener;
-        return this;
-    }
-
-    // 漫画还原
-    mangaImageRetore(mangaDownloadInfo){
-        return new Promise((resolve,reject) => {
-            let notificationInfo = {
-                'allTask':mangaDownloadInfo['downloadSuccess'].length,
-                'nowTask':0,
-                'successTask':0,
-                'failTask':0,
-                'result':0
-            };
-            for (let i = 0;i < notificationInfo['allTask'];i++){
-                let mangaNumber = parseInt(mangaDownloadInfo['mangaInfo']['chapter'][i]['link'].split('/')[4]);
-                this.__chapterRestore(mangaNumber,mangaDownloadInfo['downloadSuccess'][i])
-                    .then((restoreChapterDownloadInfo) => {
-                    // 通知章节还原完成监听器
-                    notificationInfo['successTask'] += 1;
-                    notificationInfo['result'] = restoreChapterDownloadInfo;
-                }).catch((restoreChapterDownloadInfo) => {
-                    // 章节图片压缩失败
-                    notificationInfo['failTask'] += 1;
-                    notificationInfo['result'] = restoreChapterDownloadInfo;
-                }).finally(() => {
-                    // 下载任务完成
-                    notificationInfo['nowTask'] += 1;
-                    // 通知章节还原完成监听器
-                    if (this.chapterRestoreOnFinish){
-                        this.chapterRestoreOnFinish(notificationInfo);
-                    }
-                    // 所有任务完成
-                    if (notificationInfo['nowTask'] == notificationInfo['allTask']){
-                        if (notificationInfo['failTask'] == 0){
-                            resolve();
-                        }else{
-                            reject();
-                        }
-                    }
-                });
-            }
-        });
-    }
-    
-    addChapterRestoreOnFinishListener(listener){
-        this.chapterRestoreOnFinish = listener;
-        return this;
-    }
-
 }
 
 // 操作视图
@@ -736,10 +453,10 @@ function mangaSave(file,progressListenerFn){
     let fileSaverUrl = 'https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
     let md5Url = 'https://cdn.bootcdn.net/ajax/libs/blueimp-md5/2.18.0/js/md5.min.js';
     let dynamicLoad = new DynamicLoad();
-    let comic18 = new MangaDownloadFor18Comic();
+    let download = new MangaDownload();
     let downloadInfo;
     // 设置通知
-    comic18.addDownloadImageOnFinishListener((data) => {
+    download.addDownloadImageOnFinishListener((data) => {
         // 漫画下载通知
         notificationInfo['taskName'] = '漫画下载';
         notificationInfo['taskLevel'] = 0;
@@ -758,26 +475,6 @@ function mangaSave(file,progressListenerFn){
             progressListenerFn(notificationInfo);
         }
         
-    }).addImageRestoreOnFinishListener((data) => {
-        // 漫画恢复通知
-        notificationInfo['taskName'] = '漫画恢复';
-        notificationInfo['taskLevel'] = 0;
-        notificationInfo['taskProgress'] = data;
-
-        if (progressListenerFn){
-            progressListenerFn(notificationInfo);
-        }
-        
-    }).addChapterRestoreOnFinishListener((data) => {
-        // 漫画章节恢复通知
-        notificationInfo['taskName'] = '漫画恢复';
-        notificationInfo['taskLevel'] = 1;
-        notificationInfo['taskProgress'] = data;
-
-        if (progressListenerFn){
-            progressListenerFn(notificationInfo);
-        }
-        
     });
     // 加载依赖脚本
     dynamicLoad.jsDynamicLoad([jsZipUrl,fileSaverUrl,md5Url]).then((loadInfo) => {
@@ -789,43 +486,17 @@ function mangaSave(file,progressListenerFn){
         // 读取完成
         console.log(mangaInfoJson);
         // 漫画下载
-        return comic18.downloadManga(mangaInfoJson,false);
+        return download.downloadManga(mangaInfoJson,false);
     }).then((mangaDownloadInfo) => {
         // 下载完成
         downloadInfo = mangaDownloadInfo;
-        // 漫画图片恢复
-        return comic18.mangaImageRetore(downloadInfo);
-    }).then(() => {
-        // 恢复完成
         // 漫画保存
-        return comic18.saveManga(downloadInfo);
+        return download.saveManga(downloadInfo);
     }).then(() => {
         // 保存完成
         console.log('save success.');
     });
     
-}
-
-// 页面识别
-function pageDistinguish(){
-    let patternUrl = /(http|https):\/\/cdn-msp.18comic.(vip|org)/g;
-    return window.location.href.search(patternUrl) > -1;
-}
-
-//脚本是否执行判断
-function scriptExecuteJudge(){
-    let key = encodeURIComponent('5%6#jdIfeQP94@h^');
-    if (window[key]) {
-        return true;
-    };
-    window[key] = true;
-
-    return false;
-}
-
-// 休眠函数
-function sleep(time){
-    return new Promise((resolve) => setTimeout(resolve,time));
 }
 
 // 下载开始
@@ -860,17 +531,6 @@ function downloadStart(){
 
 // ---------------- script start ---------------- //
 (() => {
-    if (scriptExecuteJudge()){
-        // 脚本已经执行过，直接返回
-        return;
-    }
-    // 脚本第一次执行
-    // 判断页面是否符合要求
-    if (!pageDistinguish()){
-        // 不符合要求，直接返回
-        return;
-    }
-    // 页面符合要求
     downloadStart();
 })();
 
