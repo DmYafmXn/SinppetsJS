@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         mangaDownload
 // @namespace    https://github.com/DmYafmXn/SinppetsJS
-// @version      0.2
+// @version      0.3
 // @author       centesimal
 // @description  download manga.
-// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/mangaDownload.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/mangaDownload.js
+// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS/picDownload/mangaDownload.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS/picDownload/mangaDownload.js
 // @supportURL   https://github.com/DmYafmXn/SinppetsJS
 // @run-at       document-idle
 // @grant        none
@@ -36,6 +36,7 @@ class MangaDownload{
         this.downloadChapterOnFinish = null;
         this.saveImageOnFinish = null;
         this.saveChapterOnFinish = null;
+        this.downloadResult = null;
     }
 
     // 漫画图片下载
@@ -212,7 +213,8 @@ class MangaDownload{
     }
 
     // 漫画保存
-    saveManga(mangaDownloadInfo){
+    saveManga(){
+        let mangaDownloadInfo = this.downloadResult;
         return new Promise((resolve,reject) => {
             let notificationInfo = {
                 'allTask':mangaDownloadInfo['downloadSuccess'].length,
@@ -270,16 +272,28 @@ class MangaDownload{
 // 操作视图
 class ImageInformationUpView{
     constructor(){
-        this.actionView = this.__upViewGenerate();
+        this.showBox = this.getShowBox();
+        this.title = this.getTitleNode();
+        this.upFileButton = this.getUpFileButton();
+        this.downloadButton = this.getDownloadButton();
+        this.showBox.appendChild(this.upFileButton);
+        this.showBox.appendChild(this.downloadButton);
+        this.showBox.appendChild(this.title);
+
         this.chapterProgress = new HorizontalProgress();
         this.imageProgress = new HorizontalProgress();
+        this.showBox.appendChild(this.chapterProgress.getProgressView());
+        this.showBox.appendChild(this.imageProgress.getProgressView());
 
-        this.actionView.appendChild(this.chapterProgress.getProgressView());
-        this.actionView.appendChild(this.imageProgress.getProgressView());
+        this.saveButton = this.getSaveButton();
+        this.showBox.appendChild(this.saveButton);
     }
 
     // 添加上传按钮到页面
-    __upViewGenerate(){
+    getShowBox(){
+        if (this.showBox){
+            return this.showBox;
+        }
         // 移除旧节点
         let oldNode = document.querySelector('#hookNode');
         if (oldNode){
@@ -297,50 +311,104 @@ class ImageInformationUpView{
                 padding:16px;'
         );
         document.body.appendChild(showBox);
+
+        return showBox;
+    }
+
+    getTitleNode(){
+        if (this.title){
+            return this.title;
+        }
+        // 当前任务标题
+        let taskTitle = document.createElement('h3');
+        taskTitle.setAttribute('id','taskTitle');
+        taskTitle.innerHTML = '进度';
+        return taskTitle;
+    }
+
+    getUpFileButton(){
+        if (this.upFileButton){
+            return this.upFileButton;
+        }
         // 上传文件按钮
         let upButton = document.createElement('input');
         upButton.setAttribute('id','imageInfoFile');
         upButton.setAttribute('type','file');
         upButton.setAttribute('name','imageInfoFile');
         upButton.setAttribute('accept','text/json')
-        showBox.appendChild(upButton);
-        // 确定按钮
+        return upButton;
+    }
+
+    getDownloadButton(){
+        if (this.downloadButton){
+            return this.downloadButton;
+        }
+        // 下载按钮
         let okButton = document.createElement('input');
-        okButton.setAttribute('id','imageInfoOk');
+        okButton.setAttribute('id','imageDownloadButton');
         okButton.setAttribute('type','button');
-        okButton.setAttribute('name','imageInfoOk');
-        okButton.setAttribute('value','确定')
+        okButton.setAttribute('name','imageDownloadButton');
+        okButton.setAttribute('value','开始下载')
         okButton.setAttribute('style','display: block;\
                 width:100%;\
                 margin:16px 0 0 0;\
                 padding:4px 0;\
                 font-size:1.5em;'
         );
-        showBox.appendChild(okButton);
-        // 当前任务标题
-        let taskTitle = document.createElement('h3');
-        taskTitle.setAttribute('id','taskTitle');
-        showBox.appendChild(taskTitle);
-        
-        return showBox;
+        return okButton;
+    }
+
+    getSaveButton(){
+        if (this.saveButton){
+            return this.saveButton;
+        }
+        // 保存按钮
+        let saveButton = document.createElement('input');
+        saveButton.setAttribute('id','imageSaveButton');
+        saveButton.setAttribute('type','button');
+        saveButton.setAttribute('name','imageSaveButton');
+        saveButton.setAttribute('value','保存')
+        saveButton.setAttribute('style',`display: block;
+                width:100%;
+                margin:16px 0 0 0;
+                padding:4px 0;
+                visibility: hidden;
+                font-size:1.5em;`
+        );
+        return saveButton;
+    }
+
+    showSaveButton(isShow){
+        if(this.saveButton){
+            if (isShow){
+                this.saveButton.style['visibility'] = 'visible';
+            }else{
+                this.saveButton.style['visibility'] = 'hidden';
+            }
+        }
     }
 
     // 设置任务标题
     setTaskTitle(title){
-        let taskNode = document.querySelector('#taskTitle');
-        if (title && taskNode){
-            taskNode.innerHTML = title;
+        if (title && this.title){
+            this.title.innerHTML = title;
         }
         return this;
     }
 
-    // 获取文件选择按钮
-    getUpFileButton(){
-        return document.querySelector('#imageInfoFile');
+    // 添加下载按钮点击事件
+    addDownloadButtonOnClickListener(listener){
+        if (this.downloadButton && listener){
+            this.downloadButton.addEventListener('click',listener);
+        }
+        return this;
     }
-    // 获取确定按钮
-    getOkButton(){
-        return document.querySelector('#imageInfoOk');
+    // 添加保存按钮点击事件
+    addSaveButtonOnClickListener(listener){
+        if (this.saveButton && listener){
+            this.saveButton.addEventListener('click',listener);
+        }
+        return this;
     }
 
     // 获取章节进度视图
@@ -438,93 +506,126 @@ class HorizontalProgress{
         let percentage = (nowProgress / onePercent).toFixed(2) + '%';
 
         this.slider.style['width'] = percentage;
-        this.progressText.innerHTML = percentage;
+        this.progressText.innerHTML = `${nowProgress}/${allProgress}`;
     }
 }
 
 // 保存漫画
-function mangaSave(file,progressListenerFn){
-    let notificationInfo = {
-                'taskName':'',
-                'taskLevel':0,
-                'taskProgress':null
-    };
-    let jsZipUrl = 'https://cdn.bootcdn.net/ajax/libs/jszip/3.6.0/jszip.min.js';
-    let fileSaverUrl = 'https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
-    let md5Url = 'https://cdn.bootcdn.net/ajax/libs/blueimp-md5/2.18.0/js/md5.min.js';
-    let dynamicLoad = new DynamicLoad();
-    let download = new MangaDownload();
-    let downloadInfo;
-    // 设置通知
-    download.addDownloadImageOnFinishListener((data) => {
-        // 漫画下载通知
-        notificationInfo['taskName'] = '漫画下载';
-        notificationInfo['taskLevel'] = 0;
-        notificationInfo['taskProgress'] = data;
+function mangaDownload(file,progressListenerFn){
+    return new Promise((resolve,reject) => {
+        let notificationInfo = {
+                    'taskName':'',
+                    'taskLevel':0,
+                    'taskProgress':null
+        };
+        let jsZipUrl = 'https://cdn.bootcdn.net/ajax/libs/jszip/3.6.0/jszip.min.js';
+        let fileSaverUrl = 'https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js';
+        let md5Url = 'https://cdn.bootcdn.net/ajax/libs/blueimp-md5/2.18.0/js/md5.min.js';
+        let dynamicLoad = new DynamicLoad();
+        let mangaAction = new MangaDownload();
+        let downloadInfo;
+        // 设置通知
+        mangaAction.addDownloadImageOnFinishListener((data) => {
+            // 漫画下载通知
+            notificationInfo['taskName'] = '漫画下载';
+            notificationInfo['taskLevel'] = 0;
+            notificationInfo['taskProgress'] = data;
 
-        if (progressListenerFn){
-            progressListenerFn(notificationInfo);
-        }
-    }).addDownloadChapterOnFinishListener((data) => {
-        // 漫画章节下载通知
-        notificationInfo['taskName'] = '漫画下载';
-        notificationInfo['taskLevel'] = 1;
-        notificationInfo['taskProgress'] = data;
+            if (progressListenerFn){
+                progressListenerFn(notificationInfo);
+            }
+        }).addDownloadChapterOnFinishListener((data) => {
+            // 漫画章节下载通知
+            notificationInfo['taskName'] = '漫画下载';
+            notificationInfo['taskLevel'] = 1;
+            notificationInfo['taskProgress'] = data;
 
-        if (progressListenerFn){
-            progressListenerFn(notificationInfo);
-        }
-        
+            if (progressListenerFn){
+                progressListenerFn(notificationInfo);
+            }
+
+        }).addImageRestoreOnFinishListener((data) => {
+            // 漫画恢复通知
+            notificationInfo['taskName'] = '漫画恢复';
+            notificationInfo['taskLevel'] = 0;
+            notificationInfo['taskProgress'] = data;
+
+            if (progressListenerFn){
+                progressListenerFn(notificationInfo);
+            }
+
+        }).addChapterRestoreOnFinishListener((data) => {
+            // 漫画章节恢复通知
+            notificationInfo['taskName'] = '漫画恢复';
+            notificationInfo['taskLevel'] = 1;
+            notificationInfo['taskProgress'] = data;
+
+            if (progressListenerFn){
+                progressListenerFn(notificationInfo);
+            }
+
+        });
+        // 加载依赖脚本
+        dynamicLoad.jsDynamicLoad([jsZipUrl,fileSaverUrl,md5Url]).then((loadInfo) => {
+            // 脚本加载完成
+            console.log('load script finish.');
+            // 从文件中读取漫画信息
+            return readMangaInformationForFile(file);
+        }).then((mangaInfoJson) => {
+            // 读取完成
+            console.log(mangaInfoJson);
+            // 漫画下载
+            return mangaAction.downloadManga(mangaInfoJson,false);
+        }).then((mangaDownloadInfo) => {
+            // 下载完成
+            downloadInfo = mangaDownloadInfo;
+            // 漫画图片恢复
+            return mangaAction.mangaImageRetore(downloadInfo);
+        }).then(() => {
+            // 恢复完成
+            resolve(mangaAction);
+        }).catch((err) => {
+            reject(err);
+        });
+
     });
-    // 加载依赖脚本
-    dynamicLoad.jsDynamicLoad([jsZipUrl,fileSaverUrl,md5Url]).then((loadInfo) => {
-        // 脚本加载完成
-        console.log('load script finish.');
-        // 从文件中读取漫画信息
-        return readMangaInformationForFile(file);
-    }).then((mangaInfoJson) => {
-        // 读取完成
-        console.log(mangaInfoJson);
-        // 漫画下载
-        return download.downloadManga(mangaInfoJson,false);
-    }).then((mangaDownloadInfo) => {
-        // 下载完成
-        downloadInfo = mangaDownloadInfo;
-        // 漫画保存
-        return download.saveManga(downloadInfo);
-    }).then(() => {
-        // 保存完成
-        console.log('save success.');
-    });
-    
+
 }
 
 // 下载开始
 function downloadStart(){
     // 添加操作视图
-    let upView = new ImageInformationUpView();
-    upView.getOkButton().addEventListener('click',() => {
-        let upFile = upView.getUpFileButton().files;
+    let mangaAction = null;
+    let actionView = new ImageInformationUpView();
+    let chapterProgress = actionView.getChapterProgressView();
+    let imageProgress = actionView.getImageProgressView();
+    chapterProgress.setTitle('章节');
+    imageProgress.setTitle('图片');
+    let notificationCallback = (notificationInfo) => {
+        actionView.setTaskTitle(notificationInfo['taskName']);
+        let nowTask = notificationInfo['taskProgress']['nowTask'];
+        let allTask = notificationInfo['taskProgress']['allTask'];
+        switch(notificationInfo['taskLevel']){
+            case 0: 
+                imageProgress.setProgress(nowTask,allTask);
+                break;
+            case 1:
+                chapterProgress.setProgress(nowTask,allTask);
+                break;
+        }
+    }
+    actionView.addDownloadButtonOnClickListener(() => {
+        let upFile = actionView.getUpFileButton().files;
         if (upFile.length === 1){
-            let chapterProgress = upView.getChapterProgressView();
-            let imageProgress = upView.getImageProgressView();
-            chapterProgress.setTitle('章节');
-            imageProgress.setTitle('图片');
-
-            mangaSave(upFile[0],(notificationInfo) => {
-                upView.setTaskTitle(notificationInfo['taskName']);
-                let nowTask = notificationInfo['taskProgress']['nowTask'];
-                let allTask = notificationInfo['taskProgress']['allTask'];
-                switch(notificationInfo['taskLevel']){
-                    case 0: 
-                        imageProgress.setProgress(nowTask,allTask);
-                        break;
-                    case 1:
-                        chapterProgress.setProgress(nowTask,allTask);
-                        break;
-                }
-
+            mangaDownload(upFile[0],notificationCallback).then((result) => {
+                mangaAction = result;
+                actionView.showSaveButton(true);
             });
+        }
+    }).addSaveButtonOnClickListener(() => {
+        // 漫画保存
+        if (mangaAction){
+            mangaAction.saveManga();
         }
     });
 }

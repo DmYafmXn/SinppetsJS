@@ -1,15 +1,14 @@
 // ==UserScript==
 // @name         WnacgAnalysis
 // @namespace    https://github.com/DmYafmXn/SinppetsJS
-// @version      0.2
+// @version      0.3
 // @author       centesimal
 // @description  analysis manga for wancg.
 // @icon         https://wnacg.org/favicon.ico
-// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/wnacg.min.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/wnacg.min.js
+// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS/picDownload/wnacg.min.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS/picDownload/wnacg.min.js
 // @supportURL   https://github.com/DmYafmXn/SinppetsJS
 // @match        *://wnacg.org/*
-// @match        *://m.wnacg.org/*
 // @match        *://img1.wnacg.org/*
 // @match        *://img2.wnacg.org/*
 // @match        *://img3.wnacg.org/*
@@ -413,11 +412,21 @@ class MangaInfoGeneration{
 // 操作视图
 class MangaInfoActionView{
     constructor(){
-        this.__actionViewGenerate();
+        this.showBox = this.getShowBox();
+        this.analysisButton = this.getAnalysisButton();
+        this.saveButton = this.getSaveButton();
+        this.jumpButton = this.getJumpButton();
+        this.showBox.appendChild(this.analysisButton);
+        this.showBox.appendChild(this.saveButton);
+        this.showBox.appendChild(this.jumpButton);
+        document.body.appendChild(this.showBox);
     }
 
     // 添加上传按钮到页面
-    __actionViewGenerate(){
+    getShowBox(){
+        if (this.showBox){
+            return this.showBox;
+        }
         // 移除旧节点
         let oldNode = document.querySelector('#hookNode');
         if (oldNode){
@@ -426,52 +435,109 @@ class MangaInfoActionView{
         // 创建挂载节点
         let showBox = document.createElement('div');
         showBox.setAttribute('id','hookNode');
-        showBox.setAttribute('style','position:fixed;\
-                bottom:30%;\
-                right:0;\
-                background-color:#fff;\
-                box-shadow:0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);\
-                z-index:200;\
-                padding:16px;'
+        showBox.setAttribute('style',`position:fixed;
+                bottom:30%;
+                right:0;
+                background-color:#fff;
+                box-shadow:0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+                z-index:200;
+                padding:16px;`
         );
-        document.body.appendChild(showBox);
+        return showBox;
+    }
+
+    getAnalysisButton(){
+        if (this.analysisButton){
+            return this.analysisButton;
+        }
         // 漫画解析按钮
         let analysisButton = document.createElement('input');
         analysisButton.setAttribute('id','analysisButton');
         analysisButton.setAttribute('type','button');
         analysisButton.setAttribute('name','analysisButton');
         analysisButton.setAttribute('value','解析');
-        analysisButton.setAttribute('style','display: block;\
-                font-size:1em;'
+        analysisButton.setAttribute('style',`display: block;
+                font-size:1em;`
         );
-        showBox.appendChild(analysisButton);
+        return analysisButton;
+    }
+
+    getSaveButton(){
+        if (this.saveButton){
+            return this.saveButton;
+        }
+        // 保存按钮
+        let saveButton = document.createElement('input');
+        saveButton.setAttribute('id','saveButton');
+        saveButton.setAttribute('type','button');
+        saveButton.setAttribute('name','saveButton');
+        saveButton.setAttribute('value','保存');
+        saveButton.setAttribute('style',`display: block;
+                visibility: hidden;
+                margin: 16px 0 0 0;
+                font-size:1em;`
+        );
+        return saveButton;
+    }
+
+    showSaveButton(isShow){
+        if(this.saveButton){
+            if (isShow){
+                this.saveButton.style['visibility'] = 'visible';
+            }else{
+                this.saveButton.style['visibility'] = 'hidden';
+            }
+        }
+    }
+
+    getJumpButton(){
+        if (this.jumpButton){
+            return this.jumpButton;
+        }
         // 跳转按钮
         let jumpButton = document.createElement('input');
         jumpButton.setAttribute('id','jumpButton');
         jumpButton.setAttribute('type','button');
         jumpButton.setAttribute('name','jumpButton');
         jumpButton.setAttribute('value','去下载 >>>');
-        jumpButton.setAttribute('style','display: block;\
-                margin: 16px 0 0 0;\
-                font-size:1em;'
+        jumpButton.setAttribute('style',`display: block;
+                visibility: hidden;
+                margin: 16px 0 0 0;
+                font-size:1em;`
         );
-        showBox.appendChild(jumpButton);
+        return jumpButton;
+    }
+
+    showJumpButton(isShow){
+        if(this.jumpButton){
+            if (isShow){
+                this.jumpButton.style['visibility'] = 'visible';
+            }else{
+                this.jumpButton.style['visibility'] = 'hidden';
+            }
+        }
     }
 
     // 添加解析按钮点击事件
     addAnalysisButtonOnClickListener(listener){
-        let analysisButton = document.querySelector('#analysisButton');
-        if (analysisButton && listener){
-            analysisButton.addEventListener('click',listener);
+        if (this.analysisButton && listener){
+            this.analysisButton.addEventListener('click',listener);
+        }
+        return this;
+    }
+
+    // 添加保存按钮点击事件
+    addSaveButtonOnClickListener(listener){
+        if (this.saveButton && listener){
+            this.saveButton.addEventListener('click',listener);
         }
         return this;
     }
 
     // 添加跳转按钮点击事件
     addJumpButtonOnClickListener(listener){
-        let jumpButton = document.querySelector('#jumpButton');
-        if (jumpButton && listener){
-            jumpButton.addEventListener('click',listener);
+        if (this.jumpButton && listener){
+            this.jumpButton.addEventListener('click',listener);
         }
         return this;
     }
@@ -508,9 +574,36 @@ function analysisManga(){
 
 }
 
+// 开始分析
+function analysisStart(){
+    let actionView = new MangaInfoActionView();
+    let mangaInfo = null;
+    actionView.addAnalysisButtonOnClickListener(() => {
+        if (mangaInfo){
+            return;
+        }
+        analysisManga().then((mangaInfoGeneration) => {
+            mangaInfo = mangaInfoGeneration;
+            console.log(mangaInfo);
+            actionView.showSaveButton(true);
+            actionView.showJumpButton(true);
+        });
+    }).addSaveButtonOnClickListener(() => {
+        if (mangaInfo){
+            mangaInfo.saveMangaInformation();
+        }
+    }).addJumpButtonOnClickListener(() => {
+        if (mangaInfo){
+            let url = mangaInfo.mangaInfo.chapter[0].images[0].link;
+            console.log(url);
+            window.location.href = url;
+        }
+    });
+}
+
 // 页面识别
 function pageDistinguish(){
-    let patternUrl = /(http|https):\/\/.*wnacg.org\/photos-index-aid-\d+.html/g;
+    let patternUrl = /(http|https):\/\/wnacg.org\/photos-index-aid-\d+.html/g;
     return window.location.href.search(patternUrl) > -1;
 }
 
@@ -531,26 +624,6 @@ function scriptExecuteJudge(){
     return false;
 }
 
-// 开始分析
-function analysisStart(){
-    let actionView = new MangaInfoActionView();
-    let mangaInfo = null;
-    actionView.addAnalysisButtonOnClickListener(() => {
-        if (mangaInfo){
-            return;
-        }
-        analysisManga().then((mangaInfoGeneration) => {
-            mangaInfo = mangaInfoGeneration;
-            console.log(mangaInfo);
-            mangaInfo.saveMangaInformation();
-        });
-    }).addJumpButtonOnClickListener(() => {
-        if (mangaInfo){
-            window.location.href = mangaInfo.mangaInfo.chapter[0].images[0].link;
-        }
-    });
-}
-
 // ---------------- script start ---------------- //
 (() => {
     if (scriptExecuteJudge()){
@@ -565,7 +638,7 @@ function analysisStart(){
         analysisStart();
     }else if(downloadPageDistinguish()){
         let dynamicLoad = new DynamicLoad();
-        let downloadJs = 'https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.2/picDownload/mangaDownload.min.js';
+        let downloadJs = 'https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS/picDownload/mangaDownload.min.js';
         dynamicLoad.jsDynamicLoad(downloadJs).then(() => {
             console.log('download js loading finish.');
         })
