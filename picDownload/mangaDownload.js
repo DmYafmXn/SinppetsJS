@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         mangaDownload
-// @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
-// @version      0.1
+// @namespace    https://github.com/DmYafmXn/SinppetsJS
+// @version      0.2
 // @author       centesimal
 // @description  download manga.
-// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js
-// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js
-// @supportURL   https://gitee.com/centesimal/sinppets-js
+// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/mangaDownload.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/mangaDownload.js
+// @supportURL   https://github.com/DmYafmXn/SinppetsJS
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==

@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         WnacgAnalysis
-// @namespace    https://gitee.com/centesimal/sinppets-js/tree/main/picDownload
-// @version      0.1
+// @namespace    https://github.com/DmYafmXn/SinppetsJS
+// @version      0.2
 // @author       centesimal
 // @description  analysis manga for wancg.
 // @icon         https://wnacg.org/favicon.ico
-// @updateURL    https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/wnacg.js
-// @downloadURL  https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/wnacg.js
-// @supportURL   https://gitee.com/centesimal/sinppets-js
+// @updateURL    https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/wnacg.min.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.1/picDownload/wnacg.min.js
+// @supportURL   https://github.com/DmYafmXn/SinppetsJS
 // @match        *://wnacg.org/*
 // @match        *://m.wnacg.org/*
 // @match        *://img1.wnacg.org/*
@@ -510,7 +510,7 @@ function analysisManga(){
 
 // 页面识别
 function pageDistinguish(){
-    let patternUrl = /(http|https):\/\/.*.wnacg.org\/photos-index-aid-\d+.html/g;
+    let patternUrl = /(http|https):\/\/.*wnacg.org\/photos-index-aid-\d+.html/g;
     return window.location.href.search(patternUrl) > -1;
 }
 
@@ -565,12 +565,13 @@ function analysisStart(){
         analysisStart();
     }else if(downloadPageDistinguish()){
         let dynamicLoad = new DynamicLoad();
-        let downloadJs = 'https://gitee.com/centesimal/sinppets-js/raw/main/picDownload/mangaDownload.js';
+        let downloadJs = 'https://cdn.jsdelivr.net/gh/DmYafmXn/SinppetsJS@v0.2/picDownload/mangaDownload.min.js';
         dynamicLoad.jsDynamicLoad(downloadJs).then(() => {
             console.log('download js loading finish.');
         })
+    }else{
+        console.log('This page is no distinguish.');
     }
-    console.log('This page is no distinguish.');
 })();
 
 // 详情：https://wnacg.org/photos-index-aid-134812.html
