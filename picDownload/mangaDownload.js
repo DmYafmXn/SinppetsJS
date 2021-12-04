@@ -523,7 +523,6 @@ function mangaDownload(file,progressListenerFn){
         let md5Url = 'https://cdn.bootcdn.net/ajax/libs/blueimp-md5/2.18.0/js/md5.min.js';
         let dynamicLoad = new DynamicLoad();
         let mangaAction = new MangaDownload();
-        let downloadInfo;
         // 设置通知
         mangaAction.addDownloadImageOnFinishListener((data) => {
             // 漫画下载通知
@@ -578,11 +577,6 @@ function mangaDownload(file,progressListenerFn){
             return mangaAction.downloadManga(mangaInfoJson,false);
         }).then((mangaDownloadInfo) => {
             // 下载完成
-            downloadInfo = mangaDownloadInfo;
-            // 漫画图片恢复
-            return mangaAction.mangaImageRetore(downloadInfo);
-        }).then(() => {
-            // 恢复完成
             resolve(mangaAction);
         }).catch((err) => {
             reject(err);
